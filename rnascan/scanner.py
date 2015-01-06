@@ -27,7 +27,7 @@ def pfm_likelihood_struct(pfm,substructure):
     for i in range(0, pfm_length):
         pfm_column = pfm[:,i]
         substructure_column = substructure[:,i]
-        d = np.dot(pwm_column,substructure_column)
+        d = np.dot(pfm_column,substructure_column)
         score = score * d
     return score
 
@@ -38,7 +38,7 @@ def pfm_compare_seq(pfm,subseq,bg_probs,prob_pfm,prob_bg):
     probability = llhood * prob_pfm / (llhood*prob_pfm + bg_llhod*prob_bg)
     return probability
 
-def pwm_compare_struct(pfm,substructure,bg_pfm,prob_pfm,prob_bg):
+def pfm_compare_struct(pfm,substructure,bg_pfm,prob_pfm,prob_bg):
     """ calculates probability of a structure hit given prior probabilities """
     llhood = pfm_likelihood_struct(pfm,substructure)
     bg_llhood = pfm_likelihood_struct(bg_pfm,substructure)
@@ -81,7 +81,7 @@ def structure_scan(pwm,structure,bg_model,prob_pfm,prob_bg):
     
     while pos < (sequence_length - pwm_length + 1):
         substructure = structure_np[:,pos:(pos+pwm_length)]
-        p_hit = pwm_compare(pwm_np,substructure,bg_pwm,prob_pfm,prob_bg)
+        p_hit = pfm_compare_struct(pwm_np,substructure,bg_pwm,prob_pfm,prob_bg)
         scores.append(p_hit)
         pos = pos + 1
     
