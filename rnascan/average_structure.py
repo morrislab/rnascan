@@ -39,10 +39,7 @@ def struct_pfm_from_aligned(sequences):
     
     return counts
 
-def get_structure_probability_matrix_for_sequence(id,seq):
-    frag_length = 100
-    overlap = 95
-    
+def get_structure_probability_matrix_for_sequence(id,seq,frag_length,overlap):
     aligned_annotated_sequences = []
     
     for i in xrange(-frag_length/2,len(seq)-frag_length/2,frag_length-overlap):
@@ -73,13 +70,13 @@ def get_structure_probability_matrix_for_sequence(id,seq):
         
         # translate the centroid structure into structural context alphabet
         parse_args = ['../lib/parse_secondary_structure', temphandle.name, temphandle2.name]
-        print parse_args
+        #print parse_args
         parse_structure_proc = subprocess.Popen(parse_args)
         parse_structure_proc.wait()
         
         annotated_struct = temphandle2.readline()
         annotated_struct.rstrip()
-        print annotated_struct
+        #print annotated_struct
         
         os.remove(temphandle.name) # remove centroid structure file
         os.remove(temphandle2.name) # remove annotated structure file

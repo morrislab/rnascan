@@ -15,21 +15,34 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with rnascan.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
-import os,sys,csv
+import sys
+import argparse
+from Bio import SeqIO
 sys.path.append("..")
 import rnascan
-from rnascan.average_structure import get_structure_probabilities_for_sequence
+from rnascan.average_structure import get_structure_probability_matrix_for_sequence
 from rnascan.pfmutil import write_pfm
-from Bio import SeqIO
 
-infile = sys.argv[1]
-outfile = sys.argv[2]
+# old arguments
+# infile = sys.argv[1]
+# outfile = sys.argv[2]
+# window_size = sys.argv[3]
+# overlap_size = sys.argv[4]
+parser = argparse.ArgumentParser(description='Calculate the average structural profile of an RNA sequence.')
+parser.add_argument("infile",help="name of file containing input RNA sequence to fold, in fasta format")
+parser.add_argument("outfile",help="filename for output")
+parser.add_argument("-w","--window_size", type=int, default=100, help="size of folding window (in nt) default: 100")
+parser.add_argument("-o","--overlap_size", type=int, default=95, help="overlap between folding windows (in nt) default: 95")
 
-for seq_record in SeqIO.parse(infile, "fasta"):
+
+args = parser.parse_args()
+
+#print "window size: "+str(args.window_size)
+#print "overlap size: "+str(args.overlap_size)
+
+for seq_record in SeqIO.parse(args.infile, "fasta"):
     seq_id = seq_record.id
     seq = seq_record.seq
-    structure = get_structure_probability_matrix_for_sequence(seq_id,seq)
-    write_pfm(structure,outfile)
+    structure = get_structure_probability_matrix_for_sequence(seq_id,seq,args.window_size,args.overlap_size)
+    write_pfm(structure,args.outfile)
 
