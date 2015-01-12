@@ -1,5 +1,4 @@
 TODO
 
 - make run_folding.py take a filename as input to write the structure profile to
-- add license
 - add ability to change window size/overlap
