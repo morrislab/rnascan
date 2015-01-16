@@ -1,4 +1,4 @@
 TODO
 
-- make args better in scanning scripts
-- update readme
+- convert everything to argparse
+- make pfm/bg probability only one score
