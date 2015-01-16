@@ -26,17 +26,7 @@ import rnascan
 from rnascan.pfmutil import read_pfm
 from rnascan.scanner import sequence_scan,structure_scan
 
-# infile_seq = sys.argv[1]
-# infile_struct = sys.argv[2]
-# outfile = sys.argv[3]
-# pfm_file_seq = sys.argv[4]
-# pfm_file_struct = sys.argv[5]
-# struct_bg_probs_file = sys.argv[6]
-# p_pfm = float(sys.argv[7])
-# p_bg = float(sys.argv[8])
-# seq_weight = float(sys.argv[9])
 parser = argparse.ArgumentParser(description='Run sequence scanning on RNA sequence and structure profile.')
-#parser.add_argument("outfile",help="filename for output")
 parser.add_argument("--inseq", type=str, help="name of file containing input RNA sequence to fold, in fasta format")
 parser.add_argument("--instruct", type=str, default=95, help="name of file containing input RNA structure profile")
 parser.add_argument("-o","--outfile", type=str, default=95, help="filename for output")
