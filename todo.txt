@@ -2,3 +2,4 @@ TODO
 
 - convert everything to argparse
 - make pfm/bg probability only one score
+- update readme

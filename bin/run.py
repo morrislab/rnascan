@@ -19,47 +19,65 @@
 from Bio.Seq import Seq
 from Bio import SeqIO
 import sys,csv
+import argparse
 import numpy as np
 sys.path.append("..")
 import rnascan
 from rnascan.pfmutil import read_pfm
 from rnascan.scanner import sequence_scan,structure_scan
 
-infile_seq = sys.argv[1]
-infile_struct = sys.argv[2]
-outfile = sys.argv[3]
-pfm_file_seq = sys.argv[4]
-pfm_file_struct = sys.argv[5]
-struct_bg_probs_file = sys.argv[6]
-p_pfm = float(sys.argv[7])
-p_bg = float(sys.argv[8])
-seq_weight = float(sys.argv[9])
+# infile_seq = sys.argv[1]
+# infile_struct = sys.argv[2]
+# outfile = sys.argv[3]
+# pfm_file_seq = sys.argv[4]
+# pfm_file_struct = sys.argv[5]
+# struct_bg_probs_file = sys.argv[6]
+# p_pfm = float(sys.argv[7])
+# p_bg = float(sys.argv[8])
+# seq_weight = float(sys.argv[9])
+parser = argparse.ArgumentParser(description='Run sequence scanning on RNA sequence and structure profile.')
+#parser.add_argument("outfile",help="filename for output")
+parser.add_argument("--inseq", type=str, help="name of file containing input RNA sequence to fold, in fasta format")
+parser.add_argument("--instruct", type=str, default=95, help="name of file containing input RNA structure profile")
+parser.add_argument("-o","--outfile", type=str, default=95, help="filename for output")
+parser.add_argument("--pfm_seq", type=str, default=100, help="name of file containing sequence PFM")
+parser.add_argument("--pfm_struct", type=str, default=95, help="name of file containing structure PFM")
+parser.add_argument("--bg_struct_probs", type=str, default=95, help="name of file containing background structural probabilities")
+parser.add_argument("-p","--p_pfm", type=float, default=0.001, help="prior probability of pfm binding (default: 0.001)")
+parser.add_argument("-w","--weight_seq", type=float, default=0.5, help="weighting of sequence (default: 0.5)")
+
+
+args = parser.parse_args()
 
 # input
 
-pfm_seq = read_pfm(pfm_file_seq)
-pfm_struct = read_pfm(pfm_file_struct)
+pfm_seq = read_pfm(args.pfm_seq)
+pfm_struct = read_pfm(args.pfm_struct)
 
 seq_bg_probs = {'A':0.25, 'C':0.25, 'G':0.25, 'U':0.25, 'T':0.25}
 
-bgprobreader = csv.reader(open(struct_bg_probs_file,'r'),delimiter='\t')
+bgprobreader = csv.reader(open(args.bg_struct_probs,'r'),delimiter='\t')
 bgprobreader.next()
 struct_bg_probs = {}
 for row in bgprobreader:
     struct_bg_probs[row[0]] = float(row[1])
 
+seq_weight = args.p_pfm
 if seq_weight < 0 or seq_weight > 1:
     raise Exception("seq weight out of range: "+str(seq_weight))
-
 struct_weight = 1 - seq_weight
+
+p_pfm = args.p_pfm
+if p_pfm < 0 or p_pfm > 1:
+    raise Exception("PFM probability out of range: "+str(p_pfm))
+p_bg = 1 - p_pfm
 
 # file handles 
 
-inhandle_seq = open(infile_seq)
-ofhandle = open(outfile,'w')
+inhandle_seq = open(args.inseq)
+ofhandle = open(args.outfile,'w')
 
 # run sequence scan
-
 
 record = next(SeqIO.parse(inhandle_seq, "fasta"))
 seqobj = record.seq
@@ -70,9 +88,11 @@ inhandle_seq.close()
 
 # run structure scan
 
-rna_structure = read_pfm(infile_struct)
+rna_structure = read_pfm(args.instruct)
 
 scores_struct = np.array(structure_scan(pfm_struct,rna_structure,struct_bg_probs,p_pfm,p_bg))
+
+# combine scores using weighting
 
 scores_seqstruct = scores_seq * seq_weight + scores_struct * struct_weight
 
