@@ -4,3 +4,4 @@ TODO
 - make pfm/bg probability only one score
 - update readme
 - make default output to stdout
+- set up setup.py

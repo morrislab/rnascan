@@ -51,6 +51,12 @@ else:
     bgprobreader = csv.reader(open(args.bg_seq_probs,'r'),delimiter='\t')
     for row in bgprobreader:
         seq_bg_probs[row[0]] = float(row[1])
+if 'T' in seq_bg_probs:
+    seq_bg_probs['U'] = seq_bg_probs['T']
+elif 'U' in seq_bg_probs:
+    seq_bg_probs['T'] = seq_bg_probs['U']
+else:
+    raise Exception("Background sequence file contains neither T or U, check that this isn't the structural context background")
 
 
 bgprobreader = csv.reader(open(args.bg_struct_probs,'r'),delimiter='\t')
@@ -58,7 +64,7 @@ struct_bg_probs = {}
 for row in bgprobreader:
     struct_bg_probs[row[0]] = float(row[1])
 
-seq_weight = args.p_pfm
+seq_weight = args.weight_seq
 if seq_weight < 0 or seq_weight > 1:
     raise Exception("seq weight out of range: "+str(seq_weight))
 struct_weight = 1 - seq_weight
@@ -70,7 +76,7 @@ p_bg = 1 - p_pfm
 
 # file handles 
 
-inhandle_seq = open(args.inseq)
+inhandle_seq = open(args.in_seq)
 ofhandle = open(args.outfile,'w')
 
 # run sequence scan
@@ -84,7 +90,7 @@ inhandle_seq.close()
 
 # run structure scan
 
-rna_structure = read_pfm(args.instruct)
+rna_structure = read_pfm(args.in_struct)
 
 scores_struct = np.array(structure_scan(pfm_struct,rna_structure,struct_bg_probs,p_pfm,p_bg))
 
