@@ -27,15 +27,15 @@ from rnascan.pfmutil import read_pfm
 from rnascan.scanner import sequence_scan,structure_scan
 
 parser = argparse.ArgumentParser(description='Run sequence scanning on RNA sequence and structure profile.')
-parser.add_argument("--inseq", type=str, help="name of file containing input RNA sequence to fold, in fasta format")
-parser.add_argument("--instruct", type=str, default=95, help="name of file containing input RNA structure profile")
-parser.add_argument("-o","--outfile", type=str, default=95, help="filename for output")
-parser.add_argument("--pfm_seq", type=str, default=100, help="name of file containing sequence PFM")
-parser.add_argument("--pfm_struct", type=str, default=95, help="name of file containing structure PFM")
-parser.add_argument("--bg_struct_probs", type=str, default=95, help="name of file containing background structural probabilities")
-parser.add_argument("-p","--p_pfm", type=float, default=0.001, help="prior probability of pfm binding (default: 0.001)")
-parser.add_argument("-w","--weight_seq", type=float, default=0.5, help="weighting of sequence (default: 0.5)")
-
+parser.add_argument("--in_seq", type=str, help="name of file containing input RNA sequence to fold, in fasta format (required)", required=True)
+parser.add_argument("--in_struct", type=str, help="name of file containing input RNA structure profile (required)", required=True)
+parser.add_argument("-o","--outfile", type=str, help="filename for output (required)", required=True)
+parser.add_argument("--pfm_seq", type=str, help="name of file containing sequence PFM (required)", required=True)
+parser.add_argument("--pfm_struct", type=str, help="name of file containing structure PFM (required)", required=True)
+parser.add_argument("--bg_seq_probs", type=str, help="name of file containing background sequence probabilities (optional, default is 0.25/all bases)", required=False)
+parser.add_argument("--bg_struct_probs", type=str, help="name of file containing background structural probabilities (required)", required=True)
+parser.add_argument("-p","--p_pfm", type=float, default=0.001, help="prior probability of pfm binding (optional, default: 0.001)", required=False)
+parser.add_argument("-w","--weight_seq", type=float, default=0.5, help="weighting of sequence (optional, default: 0.5)", required=False)
 
 args = parser.parse_args()
 
@@ -44,10 +44,16 @@ args = parser.parse_args()
 pfm_seq = read_pfm(args.pfm_seq)
 pfm_struct = read_pfm(args.pfm_struct)
 
-seq_bg_probs = {'A':0.25, 'C':0.25, 'G':0.25, 'U':0.25, 'T':0.25}
+seq_bg_probs = {}
+if args.bg_seq_probs is None:
+    seq_bg_probs = {'A':0.25, 'C':0.25, 'G':0.25, 'U':0.25, 'T':0.25}
+else:
+    bgprobreader = csv.reader(open(args.bg_seq_probs,'r'),delimiter='\t')
+    for row in bgprobreader:
+        seq_bg_probs[row[0]] = float(row[1])
+
 
 bgprobreader = csv.reader(open(args.bg_struct_probs,'r'),delimiter='\t')
-bgprobreader.next()
 struct_bg_probs = {}
 for row in bgprobreader:
     struct_bg_probs[row[0]] = float(row[1])
