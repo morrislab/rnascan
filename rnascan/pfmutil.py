@@ -84,6 +84,27 @@ def multi_pfm_iter(filename):
                     pfm[alphabet[i-1]].append(float(row[i]))
             yield id,pfm
 
+def write_multi_pfm(idlist,pfmlist,outfile):
+    of = open(outfile,'w')
+    for (id,pfm) in zip(idlist,pfmlist):
+        alphabet = sorted(pfm.keys())
+        pfm_length = len(pfm[alphabet[0]])
+        of.write('#'+id+'\n')
+        of.write('#PO')
+        for base in alphabet:
+            of.write('\t'+base)
+        of.write('\n')
+        for pos in range(0,pfm_length):
+            if pfm[alphabet[0]][pos] is None:
+                break
+            of.write(str(pos))
+            for base in alphabet:
+                of.write('\t' + str(pfm[base][pos]))
+            of.write('\n')
+        of.write('\n')
+    of.close()
+
+
 def norm_pfm(pfm):
     alphabet = sorted(pfm.keys())
     pfm_length = len(pfm[alphabet[0]])
