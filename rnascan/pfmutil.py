@@ -17,6 +17,7 @@
 
 
 import sys,csv
+from itertools import groupby
 
 from math import log
 
@@ -71,6 +72,7 @@ def multi_pfm_iter(filename):
             headerlines = [x.rstrip()[1:] for x in group]
             id = headerlines[0]
             alphabet = str.split(headerlines[1],"\t")
+            alphabet = alphabet[1:]
         else:
             for base in alphabet:
                 pfm[base] = []

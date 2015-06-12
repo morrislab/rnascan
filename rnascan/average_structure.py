@@ -52,6 +52,7 @@ def get_structure_probability_matrix_for_sequence(id,seq,frag_length,overlap):
             realstart = 0
         
         subseq = seq[realstart:(i + frag_length)]
+        #print >> sys.stderr, subseq
         #print i,i+frag_length,subseq
         frag_id = id+"_frag_"+str(i)
         input_record = SeqRecord(subseq,id=frag_id,description="")
@@ -65,18 +66,19 @@ def get_structure_probability_matrix_for_sequence(id,seq,frag_length,overlap):
         # process output to get the actual centroid structure & write it to a temp file
         os.system("rm -f *.ps") # remove ps files created by RNAfold because it is dumb
         centroid_struct = get_centroid_from_RNAfold_output(rnafold_output)
+        #print >> sys.stderr, centroid_struct
         temphandle.write(centroid_struct+'\n')
         temphandle.close()
         
         # translate the centroid structure into structural context alphabet
-        parse_args = ['../lib/parse_secondary_structure', temphandle.name, temphandle2.name]
+        parse_args = ['parse_secondary_structure', temphandle.name, temphandle2.name]
         #print parse_args
         parse_structure_proc = subprocess.Popen(parse_args)
         parse_structure_proc.wait()
         
         annotated_struct = temphandle2.readline()
         annotated_struct.rstrip()
-        #print annotated_struct
+        #print >> sys.stderr, annotated_struct
         
         os.remove(temphandle.name) # remove centroid structure file
         os.remove(temphandle2.name) # remove annotated structure file
@@ -97,6 +99,9 @@ def get_structure_probability_matrix_for_sequence(id,seq,frag_length,overlap):
 
 def get_centroid_from_RNAfold_output(rnafold_output):
     lines = rnafold_output.split('\n')
-    centroid_line = lines[2]
+    
+    #print >> sys.stderr, "::".join(lines)
+    
+    centroid_line = lines[4]
     structetc = centroid_line.split(' ')
     return structetc[0]
