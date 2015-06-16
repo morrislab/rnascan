@@ -85,7 +85,8 @@ def structure_scan(pwm,structure,bg_model,prob_pfm,prob_bg):
     alphabet = sorted(pwm.keys())
     alphabet_struct = sorted(structure.keys())
     
-    assert alphabet == alphabet_struct
+    assert alphabet == alphabet_struct, "pfm structure alphabet " + alphabet +\
+    " not the same as sequence strucutre alphabet "+alphabet_struct
 
     pwm_length = len(pwm[alphabet[0]])
     sequence_length = len(structure[alphabet[0]])
