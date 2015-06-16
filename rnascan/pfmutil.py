@@ -20,6 +20,23 @@ import sys,csv
 
 from math import log
 
+IUPAC_to_pfm = {'A' : {'A':1., 'C':0., 'G':0., 'U':0.},
+         'C' : {'A':0., 'C':1., 'G':0., 'U':0.},
+         'G' : {'A':0., 'C':0., 'G':1., 'U':0.},
+         'U' : {'A':0., 'C':0., 'G':0., 'U':1.},
+         'R' : {'A':0.5, 'C':0., 'G':0.5, 'U':0.},
+         'Y' : {'A':0., 'C':0.5, 'G':0., 'U':0.5},
+         'S' : {'A':0., 'C':0.5, 'G':0.5, 'U':0.},
+         'W' : {'A':0.5, 'C':0., 'G':0., 'U':0.5},
+         'K' : {'A':0., 'C':0., 'G':0.5, 'U':0.5},
+         'M' : {'A':0.5, 'C':0.5, 'G':0., 'U':0.},
+         'B' : {'A':0., 'C':(1./3.), 'G':(1./3.), 'U':(1./3.)},
+         'D' : {'A':(1./3.), 'C':0., 'G':(1./3.), 'U':(1./3.)},
+         'H' : {'A':(1./3.), 'C':(1./3.), 'G':0., 'U':(1./3.)},
+         'V' : {'A':(1./3.), 'C':(1./3.), 'G':(1./3.), 'U':0.},
+         'N' : {'A':0.25, 'C':0.25, 'G':0.25, 'U':0.25} }
+
+RNA_ALPHABET = ['A','C','G','U']
 
 def read_pfm(pfmfile):
     pfm = {}
@@ -77,6 +94,39 @@ def norm_pfm(pfm):
     return pfm_normalized
 
 
+def is_normalized(pfm,epsilon = 1e-6):
+    alphabet = sorted(pfm.keys())
+    pfm_length = len(pfm[alphabet[0]])
+    
+    for pos in range(0,pfm_length):
+        sum = 0
+        for base in alphabet:
+            sum = sum + pfm[base][pos]
+        if abs(1-sum) > epsilon:
+            return False
+    return True
+
+def pfm_from_IUPAC(iupac):
+    pfm = {}
+    alphabet = RNA_ALPHABET
+    for base in alphabet:
+        pfm[base] = [0.]*len(iupac)
+    for i,char in enumerate(iupac):
+        freqs = IUPAC_to_pfm[char]
+        for base in alphabet:
+            pfm[base][i] = freqs[base]
+    return(pfm)
+
+def pfm_from_string(string, alphabet):
+    pfm = {}
+    for base in alphabet:
+        pfm[base] = [0.]*len(string)
+    for i,base in enumerate(string):
+        if base not in alphabet:
+            raise Exception("char "+base+" not in alphabet "+str(alphabet))
+        pfm[base][i] = 1.
+    return(pfm)
+
 def pfm_to_pwm(pfm, num_sites):
     # assume equal background model for all bases (ie .25/.25/.25/.25 for nucleotides)
     alphabet = sorted(pfm.keys())
@@ -112,3 +162,11 @@ def pwm_scan_fwd(pwm,seq):
             FwdScores.append(score)
             pos = pos + 1
     return FwdScores
+
+if __name__ == "__main__":
+    iupac = "AUGN"
+    pfm = pfm_from_IUPAC(iupac)
+    #pfm2 = pfm_from_string(iupac,RNA_ALPHABET)
+    
+    print pfm
+    #print pfm2
