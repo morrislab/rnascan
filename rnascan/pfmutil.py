@@ -17,6 +17,7 @@
 
 
 import sys,csv
+from itertools import groupby
 
 from math import log
 
@@ -75,6 +76,53 @@ def write_pfm(pfm,pfmoutfile):
         of.write('\n')
 
     of.close()
+
+def multi_pfm_iter(filename):
+    fh = open(filename)
+    
+    id = ''
+    alphabet = []
+    pfm = {}
+    
+    for isheader,group in groupby(fh, lambda line: line[0] == "#"):
+        if isheader:
+            headerlines = [x.rstrip()[1:] for x in group]
+            id = headerlines[0]
+            alphabet = str.split(headerlines[1],"\t")
+            alphabet = alphabet[1:]
+        else:
+            for base in alphabet:
+                pfm[base] = []
+            # read the pfm from the rest of the non-header
+            rows = [x.rstrip() for x in group]
+            for row in rows:
+                row = str.split(row,'\t')
+                for i in range(len(row)):
+                    if i==0:
+                        continue #skip the position column
+                    pfm[alphabet[i-1]].append(float(row[i]))
+            yield id,pfm
+
+def write_multi_pfm(idlist,pfmlist,outfile):
+    of = open(outfile,'w')
+    for (id,pfm) in zip(idlist,pfmlist):
+        alphabet = sorted(pfm.keys())
+        pfm_length = len(pfm[alphabet[0]])
+        of.write('#'+id+'\n')
+        of.write('#PO')
+        for base in alphabet:
+            of.write('\t'+base)
+        of.write('\n')
+        for pos in range(0,pfm_length):
+            if pfm[alphabet[0]][pos] is None:
+                break
+            of.write(str(pos))
+            for base in alphabet:
+                of.write('\t' + str(pfm[base][pos]))
+            of.write('\n')
+        of.write('\n')
+    of.close()
+
 
 def norm_pfm(pfm):
     alphabet = sorted(pfm.keys())
