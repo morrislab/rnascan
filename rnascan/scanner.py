@@ -84,6 +84,8 @@ def structure_scan(pwm,structure,bg_model,prob_pfm,prob_bg):
     #score forward strand only
     alphabet = sorted(pwm.keys())
     alphabet_struct = sorted(structure.keys())
+    
+    assert alphabet == alphabet_struct
 
     pwm_length = len(pwm[alphabet[0]])
     sequence_length = len(structure[alphabet[0]])
