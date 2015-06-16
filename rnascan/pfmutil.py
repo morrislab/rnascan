@@ -38,6 +38,8 @@ IUPAC_to_pfm = {'A' : {'A':1., 'C':0., 'G':0., 'U':0.},
          'N' : {'A':0.25, 'C':0.25, 'G':0.25, 'U':0.25} }
 
 RNA_ALPHABET = ['A','C','G','U']
+FULL_STRUCT_ALPHABET = ['B','E','H','L','M','R','T']
+REDUCED_STRUCT_ALPHABET = ['E','H','I','M','P']
 
 def read_pfm(pfmfile):
     pfm = {}
@@ -56,25 +58,32 @@ def read_pfm(pfmfile):
     f.close()
     return(pfm)
 
-def write_pfm(pfm,pfmoutfile):
-    of = open(pfmoutfile, 'w')
-        
+def format_pfm(pfm):        
     alphabet = sorted(pfm.keys())
     pfm_length = len(pfm[alphabet[0]])
     
-    of.write('PO')
+    output = []    
+    
+    output.append("PO")
     for base in alphabet:
-        of.write('\t' + base)
-    of.write('\n')
+        output.append('\t' + base)
+    output.append('\n')
 
     for pos in range(0,pfm_length):
         if pfm[alphabet[0]][pos] is None:
             break
-        of.write(str(pos))
+        output.append(str(pos))
         for base in alphabet:
-            of.write('\t' + str(pfm[base][pos]))
-        of.write('\n')
+            output.append('\t' + str(pfm[base][pos]))
+        output.append('\n')
+    
+    return "".join(output)
 
+
+
+def write_pfm(pfm,pfmoutfile):
+    of = open(pfmoutfile, 'w')
+    of.write(format_pfm(pfm))
     of.close()
 
 def multi_pfm_iter(filename):
@@ -211,10 +220,33 @@ def pwm_scan_fwd(pwm,seq):
             pos = pos + 1
     return FwdScores
 
-if __name__ == "__main__":
-    iupac = "AUGN"
-    pfm = pfm_from_IUPAC(iupac)
-    #pfm2 = pfm_from_string(iupac,RNA_ALPHABET)
+def reduce_pfm_alphabet(pfm):
+    alphabet = sorted(pfm.keys())
+    pfm_length = len(pfm[alphabet[0]])
+    assert alphabet == FULL_STRUCT_ALPHABET
     
-    print pfm
-    #print pfm2
+    new_alphabet = REDUCED_STRUCT_ALPHABET
+    new_pfm = {}
+    for base in new_alphabet:
+        new_pfm[base] = [None] * (pfm_length) 
+    
+    new_pfm['E'] = pfm['E']
+    new_pfm['H'] = pfm['H']
+    new_pfm['M'] = pfm['M']
+    
+    new_pfm['P'] = [sum(x) for x in zip(pfm['L'], pfm['R'])]
+    new_pfm['I'] = [sum(x) for x in zip(pfm['B'], pfm['T'])]
+    
+    return new_pfm
+
+if __name__ == "__main__":
+    file = "../example/SLBP_pfm_assembled_normalized_struct.txt"
+    
+    pfm = read_pfm(file)
+    
+    print(format_pfm(pfm))
+    
+    reduced_pfm = reduce_pfm_alphabet(pfm)    
+    
+    print(format_pfm(reduced_pfm))
+    
