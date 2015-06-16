@@ -22,6 +22,8 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from rnascan.pfmutil import norm_pfm
 import subprocess
+import numpy as np
+
 
 def struct_pfm_from_aligned(sequences):
     #alphabet = ['B','E','H','I','L','M','R','T']
@@ -96,6 +98,38 @@ def get_structure_probability_matrix_for_sequence(id,seq,frag_length,overlap):
     
     return normalized
 
+def get_structure_probability_matrix_from_probabilities(id,seq,frag_length):
+    input_record = SeqRecord(seq,id=id,description="")
+    
+    alphabet = ['E','H','I','M']
+    programs = {'E':'E_RNAplfold_nolunp', 'H':'H_RNAplfold_nolunp', 'I':'I_RNAplfold_nolunp', 'M':'M_RNAplfold_nolunp'}
+    
+    plfold_args = ["-L",str(frag_length),"-W ",str(frag_length),"-u","1"]
+    
+    probabilities = {}
+    
+    for alph,p in programs.iteritems():
+        args = [p] + plfold_args
+        plfold_proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=None)
+        #plfold_output = plfold_proc.communicate(input_record.format("fasta"))[0]
+        plfold_output = plfold_proc.communicate(str(seq))[0]
+        data = np.fromstring(plfold_output, dtype=float, sep="\t")
+        probabilities[alph] = data
+    
+    # calculated paired probability
+    length = len(probabilities[alph[0]])
+    sum = np.zeros(length)
+    for a in alphabet:
+        sum = sum + probabilities[a]
+    paired = np.subtract(np.ones(length),sum)
+    probabilities['P'] = paired
+    
+    for a in alphabet+['P']:
+        probabilities[a] = probabilities[a].tolist()
+    
+    return probabilities
+
+
 
 def get_centroid_from_RNAfold_output(rnafold_output):
     lines = rnafold_output.split('\n')
@@ -105,3 +139,10 @@ def get_centroid_from_RNAfold_output(rnafold_output):
     centroid_line = lines[4]
     structetc = centroid_line.split(' ')
     return structetc[0]
+
+
+if __name__ == "__main__":
+    seq = Seq('GUACUCGAAAAAAUGUCAUGGACCCCUUAAAAUUACUGAGGGGUUCAGAAAAUACCGUGCAAAAGACGAAAAAAGACGAAUUUCAUUUGAUUUAUAUUUUAUAAAUGACUGUUGCAUUAAACAAUAGACCAAUUAUUUCAAUUUAAUAUUCUUUGCAGGAAACUUUCACAAUGGAAUAACGCCACAUAUUCAUUGUAAAGAUGUUGCGUACUUCUCUUACUAAAGGGGCACGGCUAACUGGGACAAGAUUUGUUCAAACAAAGGCCCUUUCGAAGGCAACAUUGACAGAUCUGCCCGAAAGAUGGGAAAAUAUGCCAAACUUAGAACAGAAAGAGAUUGCAGAUAAUUUGACAGAACGUCAAAAGCUUCCAUGGAAAACUCUCAAUAACGAGGAAAUCAAAGCAGCUUGGUACAUAUCCUACGGCGAGUGGGGACCUAGAAGACCUGUACACGGAAAAGGCGAUGUUGCAUUUAUAACUAAAGGAGUAUUUUUAGGGUUAGGAAUCUCAUUUGGGCUCUUUGGUUUAGUGAGACUAUUAGCCAAUCCUGAAACUCCAAAGACUAUGAACAGGGAAUGGCAGUUGAAAUCAGACGAGUAUCUGAAGUCAAAAAAUGCCAAUCCUUGGGGAGGUUAUUCUCAAGUUCAAUCUAAAUAAGUAGACGAGGAAAAUAAAAUUGUUUCGUAUAUUCCGUGUUUGGGGUAUAAGUAGAUUGUUUUCAUAUAUACGCAUUUGGUCUUAGUUCAGUAGGUUGAUUACUUAGUUCCUUGUACCUUCUUCUGCAAAUAUCAUUCAUUGUUACUUCGAAGAAGAAAAAAAAUAAUCAUGGAAAAUUGGAAAAAAAAAAAGUCCAAUCU')
+    id = 'seq_1'
+    
+    get_structure_probability_matrix_from_probabilities(id,seq,40)
