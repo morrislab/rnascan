@@ -23,7 +23,7 @@ def getoptions():
     desc = "Scan sequence for potential RBP binding sites."
     parser = OptionParser(usage = usage, description = desc)
     parser.add_option('-d', type = 'string', dest = "pwm_dir",
-    	default = op.dirname(sys.argv[0]) + "/db/pwms_all_motifs",
+    	default = op.dirname(sys.argv[0]) + "/db/pwms",
         help = "Directory of PWMs [%default]")
     parser.add_option('-p', '--pseudocount', type = "float", dest = "pseudocount",
     	default = 0,
@@ -45,7 +45,7 @@ def getoptions():
         help = "Number of processing cores [%default]")
     (opts, args) = parser.parse_args()
     
-    if len(args) < 1: 
+    if opts.testseq is None and len(args) < 1: 
         print >> sys.stderr, "Error: missing input FASTA file\n"
         parser.print_help()
         exit(-1)
@@ -87,6 +87,10 @@ def pwm2pssm(file, pseudocount):
 	# Can optionally add background, but for now assuming uniform probability
 	pssm = pwm.log_odds()
 
+	# Replace negative infinity values with very low number
+	for letter, odds in pssm.iteritems():
+		pssm[letter] = [-10**6 if x == -float("inf") else x for x in odds]
+
 	return(pssm)
 
 def collect(x, db):
@@ -95,9 +99,11 @@ def collect(x, db):
 	"""
 
 	# Get metadata
-	columns = ["RBP_ID", "Motif_ID", "DBID", "RBP_Name", "Family_Name", "RBDs"]
+	columns = ["RBP_ID", "Motif_ID", "DBID", "RBP_Name", "RBP_Status", "Family_Name", "RBDs", "RBP_Species"]
 	meta = pd.read_table(db).loc[:, columns]
-
+	meta = meta[meta['RBP_Species'].isin(['Homo_sapiens', 'Mus_musculus'])]
+	meta['RBP_Name'] = meta['RBP_Name'].str.upper()
+	
 	# Create DataFrame from motif hits
 	hits = pd.DataFrame(x, columns = ['Motif_ID', 'Start', 'End', 'Sequence', 'Score'])
 
