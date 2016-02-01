@@ -94,3 +94,4 @@ The score is in log (base 2) odds.
    motifs for decoding gene
    regulation](http://www.nature.com/nature/journal/v499/n7457/full/nature12311.html). Nature. 2013 Jul 11;499(7457):172-7.
    doi: 10.1038/nature12311. PubMed PMID: 23846655.
+ - [Biopython tutorial on sequence motif analysis](http://biopython.org/DIST/docs/tutorial/Tutorial.html#htoc213)
