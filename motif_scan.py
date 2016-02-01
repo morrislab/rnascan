@@ -18,7 +18,7 @@ from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-_VERSION = 'v0.1.0'
+__version__ = 'v0.1.0'
 
 def getoptions():
     usage = "usage: python %prog [options] sequences.fa"
@@ -45,8 +45,14 @@ def getoptions():
     parser.add_option('-c', type = "int", default = 8,
         dest = "cores", metavar = "CORES",
         help = "Number of processing cores [%default]")
+    parser.add_option('-v', action="store_true", dest="version", default = False,
+    	help = "Print version number")
     (opts, args) = parser.parse_args()
     
+    if opts.version == True: 
+    	print __version__
+    	exit(-1)
+
     if opts.testseq is None and len(args) < 1: 
         print >> sys.stderr, "Error: missing input FASTA file\n"
         parser.print_help()
