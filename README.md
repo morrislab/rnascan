@@ -15,7 +15,7 @@ motifs as well.
 This program was written for Python 2.7 and uses the following Python libraries
 (which needs to be installed if you haven't already):
  - [`pandas`](http://pandas.pydata.org): for handling the results using DataFrames
- - `[`biopython`](http://biopython.org): for parsing FASTA, PWMs, and performing motif scanning
+ - [`biopython`](http://biopython.org): for parsing FASTA, PWMs, and performing motif scanning
 
  Alternatively, both of the above pacakges can be installed via the 
  [Anaconda](https://www.continuum.io/why-anaconda) distribution.
@@ -34,6 +34,7 @@ Steps:
 	```
  2. Download PWMs and RBP Info files from http://cisbp-rna.ccbr.utoronto.ca/bulk.php (choose "Download Entire Datasets Archive" or alternatively choose a specific species).
  3. Unzip the downloaded file and save the contents inside the newly created `db` directory:
+ 
  	```
  	> unzip -d db entiredata_2016_01_30_11_56_pm.zip 
  	> ls -l db
@@ -43,6 +44,7 @@ Steps:
 	-rw-r--r--@   1 kevinha  staff   3.9K 30 Jan 23:56 README.txt
 	drwxr-xr-x@ 359 kevinha  staff    12K 30 Jan 23:56 pwms
 	```
+	
  4. If you chose a specific species (note: currently only support human and mouse), the PWMs sub-folder might not be named the same way as above (e.g. it might be `pwms_all_motifs`). If so, you should rename it to the default (or use `-d` to point to this PWMs folder):
  	```
  	> cd db
