@@ -29,6 +29,7 @@ http://cisbp-rna.ccbr.utoronto.ca/bulk.php and saved in the default sub-director
 Steps:
 
  1. In the `motif_scan` program folder, create a new sub-directory called `db`:
+
 	```
 	> mkdir db
 	```
