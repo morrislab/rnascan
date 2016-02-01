@@ -24,7 +24,7 @@ Alternatively, both of the above pacakges can be installed via the
 
 CISBP PWMs and RBP Info files can be downloaded from
 http://cisbp-rna.ccbr.utoronto.ca/bulk.php and saved in the default sub-directory:
-`./db`. 
+`db`. 
 
 Steps:
 
@@ -52,7 +52,7 @@ Steps:
  	> mv pwms_all_motifs pwms
  	```
 
-By default, the script will look for the PWMs saved in `./db/pwms` (specified by `-d`) as
+By default, the script will look for the PWMs saved in `db/pwms` (specified by `-d`) as
  well as the file `RBP_Information_all_motifs.txt` (specified by `-r`).
 
 # Usage
