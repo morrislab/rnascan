@@ -1,4 +1,4 @@
-# motif_scan
+# motif_scan.py
 
 A Python script for scanning RNA-binding protein motifs in a given set of
 sequences. The PWMs are downloaded from the CISBP website:
