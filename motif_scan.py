@@ -18,6 +18,8 @@ from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
+_VERSION = 'v0.1.0'
+
 def getoptions():
     usage = "usage: python %prog [options] sequences.fa"
     desc = "Scan sequence for potential RBP binding sites."
@@ -103,7 +105,7 @@ def collect(x, db):
 	meta = pd.read_table(db).loc[:, columns]
 	meta = meta[meta['RBP_Species'].isin(['Homo_sapiens', 'Mus_musculus'])]
 	meta['RBP_Name'] = meta['RBP_Name'].str.upper()
-	
+
 	# Create DataFrame from motif hits
 	hits = pd.DataFrame(x, columns = ['Motif_ID', 'Start', 'End', 'Sequence', 'Score'])
 
