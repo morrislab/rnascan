@@ -2,7 +2,7 @@
 
 A Python script for scanning RNA-binding protein motifs in a given set of
 sequences. The PWMs are downloaded from the CISBP website:
-http://cisbp-rna.ccbr.utoronto.ca/
+http://cisbp-rna.ccbr.utoronto.ca/.
 
 Has been tuned to scan for RNA motifs from human and mouse, but can be adjusted to scan for DNA
 motifs as well. 
@@ -17,8 +17,8 @@ This program was written for Python 2.7 and uses the following Python libraries
  - [`pandas`](http://pandas.pydata.org): for handling the results using DataFrames
  - [`biopython`](http://biopython.org): for parsing FASTA, PWMs, and performing motif scanning
 
- Alternatively, both of the above pacakges can be installed via the 
- [Anaconda](https://www.continuum.io/why-anaconda) distribution.
+Alternatively, both of the above pacakges can be installed via the 
+[Anaconda](https://www.continuum.io/why-anaconda) distribution.
 
 ## PWMs
 
@@ -51,7 +51,7 @@ Steps:
  	> mv pwms_all_motifs pwms
  	```
 
- The script will look for the PWMs saved in `./db/pwms` (specified by `-d`) as
+The script will look for the PWMs saved in `./db/pwms` (specified by `-d`) as
  well as the file `RBP_Information_all_motifs.txt` (specified by `-r`).
 
 # Usage
@@ -67,8 +67,7 @@ python motif_scan.py -c 8 sequences.fasta > hits.tab
 To run a test sequence:
 
 ```
-python motif_scan.py -s AGTTCCGGTCCGGCAGAGATCGCGGAGAGACGCAGAACGCAGCCCGCTCCT >
-hits.tab
+python motif_scan.py -s AGTTCCGGTCCGGCAGAGATCGCGGAGAGACGCAGAACGCAGCCCGCTCCT > hits.tab
 ```
 
 # Output
@@ -84,7 +83,7 @@ T37328_0.6	M352_0.6	ENSG00000180771	ENSG00000180771	I	RRM	RRM_1	Homo_sapiens	12	
 ...
 ```
 
-The score is in log (base 2) odds. 
+The score is in log (base 2) odds ratio. 
 
 # References
 
