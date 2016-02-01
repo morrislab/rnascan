@@ -4,7 +4,7 @@ A Python script for scanning RNA-binding protein motifs in a given set of
 sequences. The PWMs are downloaded from the CISBP website:
 http://cisbp-rna.ccbr.utoronto.ca/
 
-Has been tuned to scan for RNA motifs, but can be adjusted to scan for DNA
+Has been tuned to scan for RNA motifs from human and mouse, but can be adjusted to scan for DNA
 motifs as well. 
 
 *This script is experimental and not fully tested.* 
@@ -23,10 +23,34 @@ This program was written for Python 2.7 and uses the following Python libraries
 ## PWMs
 
 CISBP PWMs and RBP Info files can be downloaded from
-http://cisbp-rna.ccbr.utoronto.ca/bulk.php and saved in the default directory:
-`db`. Expects the following files:
-     1. PWM files (default save location: `db/pwms`)
-     1. RBP metadata (default: `db/RBP_Information_all_motifs.txt`)
+http://cisbp-rna.ccbr.utoronto.ca/bulk.php and saved in the default sub-directory:
+`./db`. 
+
+Steps:
+
+ 1. In the `motif_scan` program folder, create a new sub-directory called `db`:
+	```
+	> mkdir db
+	```
+ 2. Download PWMs and RBP Info files from http://cisbp-rna.ccbr.utoronto.ca/bulk.php (choose "Download Entire Datasets Archive" or alternatively choose a specific species).
+ 3. Unzip the downloaded file and save the contents inside the newly created `db` directory:
+ 	```
+ 	> unzip -d db entiredata_2016_01_30_11_56_pm.zip 
+ 	> ls -l db
+	total 49296
+	-rw-r--r--@   1 kevinha  staff    10M 10 Apr  2013 RBP_Information.txt
+	-rw-r--r--@   1 kevinha  staff    14M 10 Apr  2013 RBP_Information_all_motifs.txt
+	-rw-r--r--@   1 kevinha  staff   3.9K 30 Jan 23:56 README.txt
+	drwxr-xr-x@ 359 kevinha  staff    12K 30 Jan 23:56 pwms
+	```
+ 4. If you chose a specific species (note: currently only support human and mouse), the PWMs sub-folder might not be named the same way as above (e.g. it might be `pwms_all_motifs`). If so, you should rename it to the default (or use `-d` to point to this PWMs folder):
+ 	```
+ 	> cd db
+ 	> mv pwms_all_motifs pwms
+ 	```
+
+ The script will look for the PWMs saved in `./db/pwms` (specified by `-d`) as
+ well as the file `RBP_Information_all_motifs.txt` (specified by `-r`).
 
 # Usage
 
