@@ -51,7 +51,7 @@ Steps:
  	> mv pwms_all_motifs pwms
  	```
 
-The script will look for the PWMs saved in `./db/pwms` (specified by `-d`) as
+By default, the script will look for the PWMs saved in `./db/pwms` (specified by `-d`) as
  well as the file `RBP_Information_all_motifs.txt` (specified by `-r`).
 
 # Usage
