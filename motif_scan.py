@@ -18,7 +18,7 @@ from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-__version__ = 'v0.1.0'
+__version__ = 'v0.1.1'
 
 def getoptions():
     usage = "usage: python %prog [options] sequences.fa"
@@ -96,8 +96,8 @@ def pwm2pssm(file, pseudocount):
 	pssm = pwm.log_odds()
 
 	# Replace negative infinity values with very low number
-	for letter, odds in pssm.iteritems():
-		pssm[letter] = [-10**6 if x == -float("inf") else x for x in odds]
+	#for letter, odds in pssm.iteritems():
+		#pssm[letter] = [-10**6 if x == -float("inf") else x for x in odds]
 
 	return(pssm)
 
@@ -159,6 +159,7 @@ def main():
 	if opts.testseq is not None:
 		if opts.seqtype == 'RNA':
 			seq = Seq(opts.testseq, IUPAC.IUPACUnambiguousRNA()).back_transcribe()
+			seq.alphabet = IUPAC.IUPACUnambiguousDNA()
 		else:
 			seq = Seq(opts.testseq, IUPAC.IUPACUnambiguousDNA())
 		final = scan_all(pssms, seq, opts)
