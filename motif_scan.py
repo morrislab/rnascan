@@ -18,7 +18,7 @@ from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-__version__ = 'v0.1.1'
+__version__ = 'v0.1.2'
 
 def getoptions():
     usage = "usage: python %prog [options] sequences.fa"
