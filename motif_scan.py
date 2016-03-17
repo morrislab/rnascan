@@ -45,6 +45,10 @@ def getoptions():
     parser.add_option('-c', type = "int", default = 8,
         dest = "cores", metavar = "CORES",
         help = "Number of processing cores [%default]")
+    parser.add_option('-x', '--excel', action="store_true", dest="excel",
+            default = False,
+            help = "Format the RBP_ID column with =HYPERLINK(url) for " + 
+            "import into Excel [%default]")
     parser.add_option('-v', action="store_true", dest="version", default = False,
     	help = "Print version number")
     (opts, args) = parser.parse_args()
@@ -101,7 +105,7 @@ def pwm2pssm(file, pseudocount):
 
 	return(pssm)
 
-def collect(x, db):
+def collect(x, db, excel):
 	"""
 	Finilize results into a DataFrame for output
 	"""
@@ -111,6 +115,9 @@ def collect(x, db):
 	meta = pd.read_table(db).loc[:, columns]
 	meta = meta[meta['RBP_Species'].isin(['Homo_sapiens', 'Mus_musculus'])]
 	meta['RBP_Name'] = meta['RBP_Name'].str.upper()
+	if excel:
+		meta['RBP_ID'] = "=HYPERLINK(\"http://cisbp-rna.ccbr.utoronto.ca/TFreport.php?searchTF=" + \
+			meta['RBP_ID'] + "\")"
 
 	# Create DataFrame from motif hits
 	hits = pd.DataFrame(x, columns = ['Motif_ID', 'Start', 'End', 'Sequence', 'Score'])
@@ -146,7 +153,7 @@ def scan_all(pssms, seq, opts):
 
 	# Collect results
 	print >> sys.stderr, "Getting metadata and finalizing... ",
-	final = collect(hits, opts.rbpinfo)
+	final = collect(hits, opts.rbpinfo, opts.excel)
 	print >> sys.stderr, "done"
 	return final
 
