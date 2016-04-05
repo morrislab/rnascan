@@ -9,7 +9,7 @@
 import sys
 import time
 import glob
-import os.path as op
+import os
 from optparse import OptionParser, OptionGroup
 from collections import defaultdict
 import multiprocessing
@@ -18,20 +18,20 @@ from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-__version__ = 'v0.1.2'
+__version__ = 'v0.1.2b'
 
 def getoptions():
     usage = "usage: python %prog [options] sequences.fa"
     desc = "Scan sequence for potential RBP binding sites."
     parser = OptionParser(usage = usage, description = desc)
     parser.add_option('-d', type = 'string', dest = "pwm_dir",
-    	default = op.dirname(sys.argv[0]) + "/db/pwms",
+    	default = os.path.dirname(os.path.abspath(__file__)) + "/db/pwms",
         help = "Directory of PWMs [%default]")
     parser.add_option('-p', '--pseudocount', type = "float", dest = "pseudocount",
     	default = 0,
     	help = "Pseudocount for normalizing PWM. [%default]")
     parser.add_option('-r', '--rbpinfo', type = 'string', dest = 'rbpinfo',
-    	default = op.dirname(sys.argv[0]) + "/db/RBP_Information_all_motifs.txt",
+    	default = os.path.dirname(os.path.abspath(__file__)) + "/db/RBP_Information_all_motifs.txt",
     	help = "RBP info for adding meta data to results. [%default]")
     parser.add_option('-t', '--type', type = 'string', dest = 'seqtype',
     	default = "DNA", 
@@ -73,7 +73,7 @@ def load_motifs(db, *args):
 	tic = time.time()
 	for file in glob.glob(db + "/*.txt"):
 		try:
-			id = op.splitext(op.basename(file))[0]
+			id = os.path.splitext(os.path.basename(file))[0]
 			motifs[id] = pwm2pssm(file, *args)
 		except:
 			continue
