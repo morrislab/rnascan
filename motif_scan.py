@@ -18,7 +18,7 @@ from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 
-__version__ = 'v0.1.2b'
+__version__ = 'v0.1.3'
 
 def getoptions():
     usage = "usage: python %prog [options] sequences.fa"
@@ -159,6 +159,8 @@ def scan_all(pssms, seq, opts):
 
 def main():
 	(opts, args) = getoptions()
+	tic = time.time()
+	final = pd.DataFrame()
 
 	# Load PWMs
 	pssms = load_motifs(opts.pwm_dir, opts.pseudocount)
@@ -170,11 +172,12 @@ def main():
 		else:
 			seq = Seq(opts.testseq, IUPAC.IUPACUnambiguousDNA())
 		final = scan_all(pssms, seq, opts)
-		print final.to_csv(sep="\t", index = False)
+		final['Sequence_ID'] = 'testseq'
 	else:
 		# Scan in sequence
 		print >> sys.stderr, "Scanning sequences ",
-		tic = time.time()
+
+		results = []
 		for seqrecord in SeqIO.parse(open(args[0]), "fasta"):
 
 			seq = seqrecord.seq
@@ -182,11 +185,18 @@ def main():
 				seq = seq.back_transcribe()
 			seq.alphabet = IUPAC.IUPACUnambiguousDNA()
 
-			final = scan_all(pssms, seq, opts)
-			print final.to_csv(sep="\t", index = False)
+			m = scan_all(pssms, seq, opts)
+			m['Sequence_ID'] = seqrecord.id
 
-		toc = time.time()
-		print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
-		
+			results.append(m)
+		final = pd.concat(results)
+
+	cols = final.columns.tolist()
+	cols = cols[-1:] + cols[:-1]
+	print final[cols].to_csv(sep="\t", index = False)	
+	toc = time.time()
+	print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
+
+
 if __name__ == '__main__':
 	main()
