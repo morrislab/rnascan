@@ -98,9 +98,14 @@ def load_motifs(db, *args):
         try:
             id = os.path.splitext(os.path.basename(file))[0]
             motifs[id] = pwm2pssm(file, *args)
-        except:
+        except ValueError:
+            print >> sys.stderr, "\nFailed to load motif %s" % file
+        except KeyError:
             print >> sys.stderr, "\nFailed to load motif %s" % file
             print >> sys.stderr, "Check that you are using the correct --type"
+            raise
+        except:
+            print "Unexpected error:", sys.exc_info()[0]
             raise
         print >> sys.stderr, "\b.",
         sys.stderr.flush()
