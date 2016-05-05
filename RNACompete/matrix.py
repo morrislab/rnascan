@@ -9,6 +9,29 @@ sufficient enough for our purposes.
 """
 from Bio.motifs import matrix
 
+# Hack for Python 2.5, isnan and isinf were new in Python 2.6
+try:
+    from math import isnan as _isnan
+except ImportError:
+    def _isnan(value):
+        # This is tricky due to cross platform float differences
+        if str(value).lower() == "nan":
+            return True
+        return value != value
+try:
+    from math import isinf as _isinf
+except ImportError:
+    def _isinf(value):
+        # This is tricky due to cross platform float differences
+        if str(value).lower().endswith("inf"):
+            return True
+        return False
+# Hack for Python 2.5 on Windows:
+try:
+    _nan = float("nan")
+except ValueError:
+    _nan = 1e1000 / 1e1000
+
 
 class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix):
 
