@@ -229,7 +229,7 @@ def main():
     # Calculate sequence background from input
     bg = None
     if args.use_background:
-        bg = compute_background(args[0], args.alphabet)
+        bg = compute_background(args.fastafile, args.alphabet)
 
     # Load PWMs
     pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
