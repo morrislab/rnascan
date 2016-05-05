@@ -3,6 +3,8 @@
 # Calculates motif scores for all PWMs in a given set of sequences in FASTA
 # format
 #
+# Requires python 2.7+
+#
 # This tool was motivated by the RNA RBP motif scanning tool from CISBP-RNA:
 # http://cisbp-rna.ccbr.utoronto.ca/TFTools.php
 
@@ -11,7 +13,7 @@ import sys
 import time
 import glob
 import os
-from optparse import OptionParser
+import argparse
 from collections import defaultdict
 import multiprocessing
 import pandas as pd
@@ -24,60 +26,65 @@ __version__ = 'v0.2.0'
 
 
 def getoptions():
-    usage = "usage: python %prog [options] sequences.fa"
+    #usage = "usage: python %(prog)s [options] sequences.fa"
     desc = "Scan sequence for motif binding sites."
-    parser = OptionParser(usage=usage, description=desc, version=__version__)
-    parser.add_option('-d', type='string', dest="pwm_dir",
-                      default=os.path.dirname(os.path.abspath(__file__)) +
-                      "/db/pwms",
-                      help="Directory of PWMs [%default]")
-    parser.add_option('-p', '--pseudocount', type="float", dest="pseudocount",
-                      default=0,
-                      help="Pseudocount for normalizing PWM. [%default]")
-    #parser.add_option('-r', '--rbpinfo', type='string', dest='rbpinfo',
+    parser = argparse.ArgumentParser(description=desc,
+                                     version=__version__)
+    parser.add_argument('fastafile', metavar='FASTA', nargs='?',
+                        help="Input FASTA file")
+    parser.add_argument('-d', dest="pwm_dir",
+                        default=os.path.dirname(os.path.abspath(__file__)) +
+                        "/db/pwms",
+                        help="Directory of PWMs [%(default)s]")
+    parser.add_argument('-p', '--pseudocount', type=float,
+                        dest="pseudocount",
+                        default=0,
+                        help="Pseudocount for normalizing PWM. [%(default)s]")
+    #parser.add_argument('-r', '--rbpinfo', type='string', dest='rbpinfo',
         #default=os.path.dirname(os.path.abspath(__file__)) +
         #"/db/RBP_Information_all_motifs.txt",
-        #help="RBP info for adding meta data to results. [%default]")
-    parser.add_option('-t', '--type', type='choice', dest='seqtype',
-                      choices=['DNA', 'RNA', 'SS'],
-                      default="RNA",
-                      help=("Alphabet of PWM (DNA|RNA|SS for "
-                            "RNAContextualSecondaryStructure). [%default]"))
-    parser.add_option('-m', '--minscore', type='float', dest='minscore',
-                      default=6,
-                      help="Minimum score for motif hits. [%default]")
-    parser.add_option('-s', '--seq', type='string', dest='testseq',
-                      default=None,
-                      help=("Supply a test sequence to scan. FASTA files will"
-                            " be ignored."))
-    parser.add_option('-c', type="int", default=8,
-                      dest="cores", metavar="CORES",
-                      help="Number of processing cores [%default]")
-    #parser.add_option('-x', '--excel', action="store_true", dest="excel",
+        #help="RBP info for adding meta data to results. [%(default)s]")
+    parser.add_argument('-t', '--type', dest='seqtype',
+                        choices=['DNA', 'RNA', 'SS'],
+                        default="RNA",
+                        help=("Alphabet of PWM (DNA|RNA|SS for "
+                              "RNAContextualSecondaryStructure). "
+                              "[%(default)s]"))
+    parser.add_argument('-m', '--minscore', type=float, dest='minscore',
+                        default=6,
+                        help="Minimum score for motif hits. [%(default)s]")
+    parser.add_argument('-s', '--seq', dest='testseq',
+                        default=None,
+                        help=("Supply a test sequence to scan. FASTA files "
+                              " will be ignored."))
+    parser.add_argument('-c', type=int, default=8,
+                        dest="cores", metavar="CORES",
+                        help="Number of processing cores [%(default)s]")
+    #parser.add_argument('-x', '--excel', action="store_true", dest="excel",
             #default=False,
             #help="Format the RBP_ID column with =HYPERLINK(url) for " +
-            #"import into Excel [%default]")
-    parser.add_option('-b', action="store_true", default=False,
-                      dest="use_background",
-                      help=("Perform background calculation from input "
-                            "sequences [%default]"))
-    parser.add_option('-x', '--debug', action="store_true", default=False,
-                      dest="debug",
-                      help=("Turn on debug mode (aka disable parallelization) "
-                            "[%default]"))
-    (opts, args) = parser.parse_args()
+            #"import into Excel [%(default)s]")
+    parser.add_argument('-b', action="store_true", default=False,
+                        dest="use_background",
+                        help=("Perform background calculation from input "
+                              "sequences [%(default)s]"))
+    parser.add_argument('-x', '--debug', action="store_true", default=False,
+                        dest="debug",
+                        help=("Turn on debug mode  "
+                              "(aka disable parallelization) [%(default)s]"))
+    args = parser.parse_args()
 
-    if opts.testseq is None and len(args) < 1:
-        parser.error("Missing input FASTA file\n")
+    if args.testseq is None and args.fastafile is None:
+        parser.error("Missing input FASTA file or test sequence\n")
 
-    if opts.seqtype == 'SS':
-        opts.alphabet = secondarystructure.RNAContextualSecondaryStructure()
-    elif opts.seqtype == 'RNA':
-        opts.alphabet = IUPAC.IUPACUnambiguousRNA()
+    if args.seqtype == 'SS':
+        args.alphabet = secondarystructure.RNAContextualSecondaryStructure()
+    elif args.seqtype == 'RNA':
+        args.alphabet = IUPAC.IUPACUnambiguousRNA()
     else:
-        opts.alphabet = IUPAC.IUPACUnambiguousDNA()
+        args.alphabet = IUPAC.IUPACUnambiguousDNA()
 
-    return (opts, args)
+    return (args)
 
 
 def load_motifs(db, *args):
@@ -151,21 +158,21 @@ def scan(pssm, seq, minscore, motif_id):
     return results
 
 
-def scan_all(pssms, seq, opts, bg=None):
+def scan_all(pssms, seq, args, bg=None):
     """
     Scan seq for all motifs in pssms
     """
     hits = []
     tasks = []
 
-    if opts.debug:
+    if args.debug:
         for motif_id, pssm in pssms.iteritems():
-            results = scan(pssm, seq, opts.minscore, motif_id)
+            results = scan(pssm, seq, args.minscore, motif_id)
             hits.extend(results)
     else:
-        p = multiprocessing.Pool(opts.cores)
+        p = multiprocessing.Pool(args.cores)
         for motif_id, pssm in pssms.iteritems():
-            tasks.append((pssm, seq, opts.minscore, motif_id,))
+            tasks.append((pssm, seq, args.minscore, motif_id,))
         results = [p.apply_async(scan, t) for t in tasks]
 
         for r in results:
@@ -188,7 +195,6 @@ def _set_seq(seq, alphabet):
             seq = seq.transcribe()
             seq.alphabet = alphabet
         except:
-            print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]
             raise
     return seq
 
@@ -210,32 +216,32 @@ def compute_background(fasta, alphabet):
 
 
 def main():
-    (opts, args) = getoptions()
+    args = getoptions()
     tic = time.time()
     final = pd.DataFrame()
     count = 0
 
     # Calculate sequence background from input
     bg = None
-    if opts.use_background:
-        bg = compute_background(args[0], opts.alphabet)
+    if args.use_background:
+        bg = compute_background(args[0], args.alphabet)
 
     # Load PWMs
-    pssms = load_motifs(opts.pwm_dir, opts.pseudocount, opts.alphabet, bg)
+    pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
 
-    if opts.testseq is not None:
-        seq = _set_seq(Seq(opts.testseq), opts.alphabet)
-        final = scan_all(pssms, seq, opts)
+    if args.testseq is not None:
+        seq = _set_seq(Seq(args.testseq), args.alphabet)
+        final = scan_all(pssms, seq, args)
         final['Sequence_ID'] = 'testseq'
         count += 1
     else:
         print >> sys.stderr, "Scanning sequences ",
 
         results = []
-        for seqrecord in SeqIO.parse(open(args[0]), "fasta"):
-            seq = _set_seq(seqrecord.seq, opts.alphabet)
+        for seqrecord in SeqIO.parse(open(args.fastafile), "fasta"):
+            seq = _set_seq(seqrecord.seq, args.alphabet)
 
-            m = scan_all(pssms, seq, opts)
+            m = scan_all(pssms, seq, args)
             m['Sequence_ID'] = seqrecord.id
 
             results.append(m)
