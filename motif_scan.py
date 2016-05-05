@@ -22,51 +22,54 @@ from RNACompete import secondarystructure, matrix
 __version__ = 'v0.2.0'
 
 def getoptions():
-    usage = "usage: python %prog [options] sequences.fa"
-    desc = "Scan sequence for motif binding sites."
-    parser = OptionParser(usage = usage, description = desc)
-    parser.add_option('-d', type = 'string', dest = "pwm_dir",
-    	default = os.path.dirname(os.path.abspath(__file__)) + "/db/pwms",
-        help = "Directory of PWMs [%default]")
-    parser.add_option('-p', '--pseudocount', type = "float", dest = "pseudocount",
-    	default = 0,
-    	help = "Pseudocount for normalizing PWM. [%default]")
-    #parser.add_option('-r', '--rbpinfo', type = 'string', dest = 'rbpinfo',
-    	#default = os.path.dirname(os.path.abspath(__file__)) + "/db/RBP_Information_all_motifs.txt",
-    	#help = "RBP info for adding meta data to results. [%default]")
-    parser.add_option('-t', '--type', type = 'string', dest = 'seqtype',
-    	default = "DNA", 
-    	help = "Alphabet of input sequence (DNA|RNA|SS for RNAContextualSecondaryStructure). [%default]")
-    parser.add_option('-m', '--minscore', type = 'float', dest = 'minscore',
-    	default = 6,
-    	help = "Minimum score for motif hits. [%default]")
-    parser.add_option('-s', '--seq', type = 'string', dest = 'testseq',
-    	default = None,
-    	help = "Supply a test sequence to scan. FASTA files will be ignored.")
-    parser.add_option('-c', type = "int", default = 8,
-        dest = "cores", metavar = "CORES",
-        help = "Number of processing cores [%default]")
-    #parser.add_option('-x', '--excel', action="store_true", dest="excel",
-            #default = False,
-            #help = "Format the RBP_ID column with =HYPERLINK(url) for " + 
-            #"import into Excel [%default]")
-    parser.add_option('-x', '--debug', action="store_true", default = False,
-        dest = "debug", 
-        help = "Turn on debug mode (aka disable parallelization) [%default]")
-    parser.add_option('-v', action="store_true", dest="version", default = False,
-    	help = "Print version number")
-    (opts, args) = parser.parse_args()
-    
-    if opts.version == True: 
-    	print __version__
-    	exit(-1)
+	usage = "usage: python %prog [options] sequences.fa"
+	desc = "Scan sequence for motif binding sites."
+	parser = OptionParser(usage = usage, description = desc, version=__version__)
+	parser.add_option('-d', type = 'string', dest = "pwm_dir",
+		default = os.path.dirname(os.path.abspath(__file__)) + "/db/pwms",
+		help = "Directory of PWMs [%default]")
+	parser.add_option('-p', '--pseudocount', type = "float", dest = "pseudocount",
+		default = 0,
+		help = "Pseudocount for normalizing PWM. [%default]")
+	#parser.add_option('-r', '--rbpinfo', type = 'string', dest = 'rbpinfo',
+		#default = os.path.dirname(os.path.abspath(__file__)) + "/db/RBP_Information_all_motifs.txt",
+		#help = "RBP info for adding meta data to results. [%default]")
+	parser.add_option('-t', '--type', type = 'choice', dest = 'seqtype',
+		choices = ['DNA', 'RNA', 'SS'], 
+		default = "RNA", 
+		help = "Alphabet of PWM (DNA|RNA|SS for RNAContextualSecondaryStructure). [%default]")
+	parser.add_option('-m', '--minscore', type = 'float', dest = 'minscore',
+		default = 6,
+		help = "Minimum score for motif hits. [%default]")
+	parser.add_option('-s', '--seq', type = 'string', dest = 'testseq',
+		default = None,
+		help = "Supply a test sequence to scan. FASTA files will be ignored.")
+	parser.add_option('-c', type = "int", default = 8,
+		dest = "cores", metavar = "CORES",
+		help = "Number of processing cores [%default]")
+	#parser.add_option('-x', '--excel', action="store_true", dest="excel",
+			#default = False,
+			#help = "Format the RBP_ID column with =HYPERLINK(url) for " + 
+			#"import into Excel [%default]")
+	parser.add_option('-b', action="store_true", default = False,
+		dest = "use_background",
+		help = "Perform background calculation from input sequences [%default]")
+	parser.add_option('-x', '--debug', action="store_true", default = False,
+		dest = "debug", 
+		help = "Turn on debug mode (aka disable parallelization) [%default]")
+	(opts, args) = parser.parse_args()
 
-    if opts.testseq is None and len(args) < 1: 
-        print >> sys.stderr, "Error: missing input FASTA file\n"
-        parser.print_help()
-        exit(-1)
+	if opts.testseq is None and len(args) < 1: 
+		parser.error("Missing input FASTA file\n")
 
-    return (opts, args)
+	if opts.seqtype == 'SS':
+		opts.alphabet = secondarystructure.RNAContextualSecondaryStructure()
+	elif opts.seqtype == 'RNA':
+		opts.alphabet = IUPAC.IUPACUnambiguousRNA()
+	else:
+		opts.alphabet = IUPAC.IUPACUnambiguousDNA()
+
+	return (opts, args)
 
 def load_motifs(db, *args):
 	"""
@@ -81,8 +84,8 @@ def load_motifs(db, *args):
 			motifs[id] = pwm2pssm(file, *args)
 		except:
 			print >> sys.stderr, "\nFailed to load motif %s" % file
-			print >> sys.stderr, "Check that you are using the correct --type"
-			sys.exit(-1)
+			print >> sys.stderr, "Check that you are using the correct -t/--type"
+			raise
 		print >> sys.stderr, "\b.",
 		sys.stderr.flush()
 	toc = time.time()
@@ -90,33 +93,20 @@ def load_motifs(db, *args):
 	print >> sys.stderr, "Found %d motifs" % len(motifs)
 	return motifs
 
-def pwm2pssm(file, pseudocount, seqtype):
+def pwm2pssm(file, pseudocount, alphabet, bg=None):
 	"""
 	Convert load PWM and convert it to PSSM (take the log_odds)
 	"""
 	pwm = pd.read_table(file)
-
-	if seqtype == 'RNA' or seqtype == 'DNA':
-		# Assuming we are doing RNA motif scanning. Need to replace U with T
-		# as Biopython's motif scanner only does DNA
-		pwm.rename(columns = {'U':'T'}, inplace=True)
-		alphabet = IUPAC.IUPACUnambiguousDNA()
-	else:
-		alphabet = secondarystructure.RNAContextualSecondaryStructure()
-
 	pwm = pwm.drop(pwm.columns[0], 1).to_dict(orient = 'list')
 	pwm = motifs.Motif(alphabet = alphabet, counts = pwm)
 	pwm = pwm.counts.normalize(pseudocount)
 
 	# Can optionally add background, but for now assuming uniform probability
-	pssm = pwm.log_odds()
+	pssm = pwm.log_odds(background=bg)
 
-	if seqtype == 'SS':
-		pssm = matrix.ExtendedPositionSpecificScoringMatrix(pssm.alphabet, pssm)
-
-	# Replace negative infinity values with very low number
-	#for letter, odds in pssm.iteritems():
-		#pssm[letter] = [-10**6 if x == -float("inf") else x for x in odds]
+	#if isinstance(alphabet, secondarystructure.RNAContextualSecondaryStructure):
+	pssm = matrix.ExtendedPositionSpecificScoringMatrix(pssm.alphabet, pssm)
 
 	return(pssm)
 
@@ -126,20 +116,19 @@ def collect(x):
 	"""
 
 	# Create DataFrame from motif hits
-	hits = pd.DataFrame(x, columns = ['Motif_ID', 'Start', 'End', 'Sequence', 'Score'])
+	hits = pd.DataFrame(x, columns = ['Motif_ID', 'Start', 'End', 'Sequence', 'LogOdds'])
 
 	# Merge metadata with hits
 	return hits.sort_values(['Start', 'Motif_ID'])
 
-def scan(pssm, seq, minscore, motif_id, seqtype):
+def scan(pssm, seq, minscore, motif_id):
 	results = []
 	for position, score in pssm.search(seq, threshold = minscore, both = False):
 		end_position = position + len(pssm.consensus)
 
-		# Transcribe sequence if sequence is RNA
 		fragment = seq[position:end_position]
-		if seqtype == 'RNA':
-			fragment = fragment.transcribe()
+		#if isinstance(seq.alphabet, IUPAC.IUPACUnambiguousRNA):
+			#fragment = fragment.transcribe()
 
 		values = [motif_id,
 			position + 1, end_position,
@@ -148,7 +137,7 @@ def scan(pssm, seq, minscore, motif_id, seqtype):
 		results.append(values)
 	return results
 
-def scan_all(pssms, seq, opts):
+def scan_all(pssms, seq, opts, bg=None):
 	"""
 	Scan seq for all motifs in pssms
 	"""
@@ -157,12 +146,12 @@ def scan_all(pssms, seq, opts):
 
 	if opts.debug:
 		for motif_id, pssm in pssms.iteritems():
-			results = scan(pssm, seq, opts.minscore, motif_id, opts.seqtype)
+			results = scan(pssm, seq, opts.minscore, motif_id)
 			hits.extend(results)
 	else:		
 		p = multiprocessing.Pool(opts.cores)
 		for motif_id, pssm in pssms.iteritems():
-			tasks.append((pssm, seq, opts.minscore, motif_id, opts.seqtype,))
+			tasks.append((pssm, seq, opts.minscore, motif_id,))
 		results = [p.apply_async(scan, t) for t in tasks]
 
 		for r in results:
@@ -173,40 +162,61 @@ def scan_all(pssms, seq, opts):
 	final = collect(hits)
 	return final
 
+def _set_seq(seq, alphabet):
+	if not isinstance(seq, Seq):
+		raise TypeError("Seq object must be supplied")
+
+	if isinstance(alphabet, IUPAC.IUPACUnambiguousRNA):
+		# If RNA alphabet is specified and input sequences are in DNA, we need
+		# to transcribe them to RNA
+		try:
+			seq = seq.transcribe()
+			seq.alphabet = alphabet
+		except:
+			print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]
+			raise
+	return seq
+
+def compute_background(fasta, alphabet):
+	"""Compute background probabiilities from all input sequences
+	"""
+	print >> sys.stderr, "Calculating background"
+	content = defaultdict(int)	
+	total = 0
+	for seqrecord in SeqIO.parse(open(fasta), "fasta"):
+		seqobj = _set_seq(seqrecord.seq, alphabet)
+		for letter in alphabet.letters:
+			content[letter] += seqobj.count(letter)
+		total += len(seqobj)
+	for letter, count in content.iteritems():
+		content[letter] = float(count)/total
+	return content
+
 def main():
 	(opts, args) = getoptions()
 	tic = time.time()
 	final = pd.DataFrame()
 	count = 0
 
+	# Calculate sequence background from input
+	bg = None
+	if opts.use_background:
+		bg = compute_background(args[0], opts.alphabet)
+
 	# Load PWMs
-	pssms = load_motifs(opts.pwm_dir, opts.pseudocount, opts.seqtype)
+	pssms = load_motifs(opts.pwm_dir, opts.pseudocount, opts.alphabet, bg)
 
 	if opts.testseq is not None:
-		if opts.seqtype == 'RNA':
-			seq = Seq(opts.testseq, IUPAC.IUPACUnambiguousRNA()).back_transcribe()
-			seq.alphabet = IUPAC.IUPACUnambiguousDNA()
-		elif opts.seqtype == 'SS':
-			seq = Seq(opts.testseq, secondarystructure.RNAContextualSecondaryStructure())
-		else:
-			seq = Seq(opts.testseq, IUPAC.IUPACUnambiguousDNA())
+		seq = _set_seq(Seq(opts.testseq), opts.alphabet)
 		final = scan_all(pssms, seq, opts)
 		final['Sequence_ID'] = 'testseq'
 		count += 1
 	else:
-		# Scan in sequence
 		print >> sys.stderr, "Scanning sequences ",
 
 		results = []
 		for seqrecord in SeqIO.parse(open(args[0]), "fasta"):
-
-			seq = seqrecord.seq
-			if opts.seqtype == 'SS':
-				seq.alphabet = secondarystructure.RNAContextualSecondaryStructure()
-			else:
-				if opts.seqtype == "RNA":
-					seq = seq.back_transcribe()
-				seq.alphabet = IUPAC.IUPACUnambiguousDNA()
+			seq = _set_seq(seqrecord.seq, opts.alphabet)
 
 			m = scan_all(pssms, seq, opts)
 			m['Sequence_ID'] = seqrecord.id
