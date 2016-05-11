@@ -255,7 +255,7 @@ def main():
 
     cols = final.columns.tolist()
     cols = cols[-1:] + cols[:-1]
-    print final[cols].to_csv(sep="\t", index=False),
+    final[cols].to_csv(sys.stdout, sep="\t", index=False)
     toc = time.time()
 
     print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
