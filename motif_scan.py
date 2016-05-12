@@ -20,13 +20,12 @@ import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+#sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 __version__ = 'v0.2.0'
 
 
 def getoptions():
-    #usage = "usage: python %(prog)s [options] sequences.fa"
     desc = "Scan sequence for motif binding sites."
     parser = argparse.ArgumentParser(description=desc,
                                      version=__version__)
@@ -64,10 +63,11 @@ def getoptions():
             #default=False,
             #help="Format the RBP_ID column with =HYPERLINK(url) for " +
             #"import into Excel [%(default)s]")
-    parser.add_argument('-b', action="store_true", default=False,
-                        dest="use_background",
-                        help=("Perform background calculation from input "
-                              "sequences [%(default)s]"))
+    parser.add_argument('-u', action="store_true", default=False,
+                        dest="uniform_background",
+                        help=("Use uniform background for calculating "
+                              "log-odds [%(default)s]. Default is to compute "
+                              "background from input sequences"))
     parser.add_argument('-x', '--debug', action="store_true", default=False,
                         dest="debug",
                         help=("Turn on debug mode  "
@@ -227,8 +227,10 @@ def main():
     count = 0
 
     # Calculate sequence background from input
-    bg = None
-    if args.use_background:
+    if args.uniform_background or args.testseq is not None:
+        print >> sys.stderr, "Using uniform background probabilities"
+        bg = None
+    else:
         bg = compute_background(args.fastafile, args.alphabet)
 
     # Load PWMs
