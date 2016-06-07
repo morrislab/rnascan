@@ -22,7 +22,7 @@ from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__version__ = 'v0.2.0'
+__version__ = 'v0.2.1'
 
 
 def getoptions():
@@ -127,7 +127,6 @@ def pwm2pssm(file, pseudocount, alphabet, bg=None):
     # Can optionally add background, but for now assuming uniform probability
     pssm = pwm.log_odds(background=bg)
 
-    #if isinstance(alphabet, secondarystructure.RNAContextualSecondaryStructure):
     pssm = matrix.ExtendedPositionSpecificScoringMatrix(pssm.alphabet, pssm)
 
     return(pssm)
@@ -199,6 +198,7 @@ def _set_seq(seq, alphabet):
         try:
             seq = seq.transcribe()
             seq.alphabet = alphabet
+            seq = seq.upper()
         except:
             raise
     return seq
@@ -207,7 +207,7 @@ def _set_seq(seq, alphabet):
 def compute_background(fasta, alphabet):
     """Compute background probabiilities from all input sequences
     """
-    print >> sys.stderr, "Calculating background"
+    print >> sys.stderr, "Calculating background probabilities...",
     content = defaultdict(int)
     total = 0
     for seqrecord in SeqIO.parse(open(fasta), "fasta"):
@@ -217,6 +217,8 @@ def compute_background(fasta, alphabet):
         total += len(seqobj)
     for letter, count in content.iteritems():
         content[letter] = float(count) / total
+        print >> sys.stderr, "%s: %f" % (letter, content[letter]),
+    print >> sys.stderr, ""
     return content
 
 
