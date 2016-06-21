@@ -192,7 +192,7 @@ def _set_seq(seq, alphabet):
     if not isinstance(seq, Seq):
         raise TypeError("Seq object must be supplied")
 
-    if isinstance(alphabet, IUPAC.IUPACUnambiguousRNA):
+    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA):
         # If RNA alphabet is specified and input sequences are in DNA, we need
         # to transcribe them to RNA
         try:
