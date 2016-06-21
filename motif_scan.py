@@ -214,11 +214,14 @@ def compute_background(fasta, alphabet):
         seqobj = _set_seq(seqrecord.seq, alphabet)
         for letter in alphabet.letters:
             content[letter] += seqobj.count(letter)
-        total += len(seqobj)
+            total += seqobj.count(letter)
+    pct_sum = 0
     for letter, count in content.iteritems():
         content[letter] = float(count) / total
+        pct_sum += content[letter]
         print >> sys.stderr, "%s: %f" % (letter, content[letter]),
     print >> sys.stderr, ""
+    assert (1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
     return content
 
 
