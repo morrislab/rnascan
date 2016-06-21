@@ -16,6 +16,7 @@ import os
 import argparse
 from collections import defaultdict
 import multiprocessing
+from itertools import izip_longest, izip, repeat
 import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
@@ -85,6 +86,35 @@ def getoptions():
         args.alphabet = IUPAC.IUPACUnambiguousDNA()
 
     return (args)
+
+def batch_iterator(iterator, batch_size):
+    """Returns lists of length batch_size.
+
+    This can be used on any iterator, for example to batch up
+    SeqRecord objects from Bio.SeqIO.parse(...), or to batch
+    Alignment objects from Bio.AlignIO.parse(...), or simply
+    lines from a file handle.
+
+    This is a generator function, and it returns lists of the
+    entries from the supplied iterator.  Each list will have
+    batch_size entries, although the final list may be shorter.
+
+    Source: http://biopython.org/wiki/Split_large_file
+    """
+    entry = True  # Make sure we loop once
+    while entry:
+        batch = []
+        while len(batch) < batch_size:
+            try:
+                entry = iterator.next()
+            except StopIteration:
+                entry = None
+            if entry is None:
+                # End of file
+                break
+            batch.append(entry)
+        if batch:
+            yield batch
 
 
 def load_motifs(db, *args):
@@ -204,21 +234,43 @@ def _set_seq(seq, alphabet):
     return seq
 
 
-def compute_background(fasta, alphabet):
+def _compute_bg(seqrecord, *args):
+    if seqrecord is None: return None
+    content = defaultdict(int)
+    seqobj = _set_seq(seqrecord.seq, args[0])
+    for letter in args[0].letters:
+        content[letter] += seqobj.count(letter)
+    return content
+
+
+def _compute_bg_star(a_b):
+    return _compute_bg(*a_b)
+
+
+def compute_background(fasta, alphabet, cores=8):
     """Compute background probabiilities from all input sequences
     """
     print >> sys.stderr, "Calculating background probabilities...",
     content = defaultdict(int)
     total = 0
-    for seqrecord in SeqIO.parse(open(fasta), "fasta"):
-        seqobj = _set_seq(seqrecord.seq, alphabet)
-        for letter in alphabet.letters:
-            content[letter] += seqobj.count(letter)
-        total += len(seqobj)
+    seq_iter = SeqIO.parse(open(fasta), "fasta")
+    p = multiprocessing.Pool(cores)
+    for i, batch in enumerate(batch_iterator(seq_iter, 250)):
+        results = p.map(_compute_bg_star, izip(batch, repeat(alphabet)))
+        for batch_content in results:
+            if batch_content is None: continue
+            for letter, count in batch_content.iteritems():
+                content[letter] += count
+                total += count
+    p.close()
+
+
     for letter, count in content.iteritems():
         content[letter] = float(count) / total
         print >> sys.stderr, "%s: %f" % (letter, content[letter]),
+
     print >> sys.stderr, ""
+    sys.exit()
     return content
 
 
@@ -242,6 +294,7 @@ def main():
         seq = _set_seq(Seq(args.testseq), args.alphabet)
         final = scan_all(pssms, seq, args)
         final['Sequence_ID'] = 'testseq'
+        final['Description'] = ''
         count += 1
     else:
         print >> sys.stderr, "Scanning sequences ",
@@ -252,13 +305,14 @@ def main():
 
             m = scan_all(pssms, seq, args)
             m['Sequence_ID'] = seqrecord.id
+            m['Description'] = seqrecord.description
 
             results.append(m)
             count += 1
         final = pd.concat(results)
 
     cols = final.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
+    cols = cols[-2:] + cols[:-2]
     final[cols].to_csv(sys.stdout, sep="\t", index=False)
     toc = time.time()
 
