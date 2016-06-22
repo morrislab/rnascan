@@ -16,13 +16,14 @@ import os
 import argparse
 from collections import defaultdict
 import multiprocessing
+from itertools import izip_longest, izip, repeat
 import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__version__ = 'v0.2.1'
+__version__ = 'v0.3.0'
 
 
 def getoptions():
@@ -85,6 +86,35 @@ def getoptions():
         args.alphabet = IUPAC.IUPACUnambiguousDNA()
 
     return (args)
+
+def batch_iterator(iterator, batch_size):
+    """Returns lists of length batch_size.
+
+    This can be used on any iterator, for example to batch up
+    SeqRecord objects from Bio.SeqIO.parse(...), or to batch
+    Alignment objects from Bio.AlignIO.parse(...), or simply
+    lines from a file handle.
+
+    This is a generator function, and it returns lists of the
+    entries from the supplied iterator.  Each list will have
+    batch_size entries, although the final list may be shorter.
+
+    Source: http://biopython.org/wiki/Split_large_file
+    """
+    entry = True  # Make sure we loop once
+    while entry:
+        batch = []
+        while len(batch) < batch_size:
+            try:
+                entry = iterator.next()
+            except StopIteration:
+                entry = None
+            if entry is None:
+                # End of file
+                break
+            batch.append(entry)
+        if batch:
+            yield batch
 
 
 def load_motifs(db, *args):
@@ -162,26 +192,19 @@ def scan(pssm, seq, minscore, motif_id):
     return results
 
 
-def scan_all(pssms, seq, args, bg=None):
+def scan_all(seqrecord, *args):
     """
     Scan seq for all motifs in pssms
     """
+    pssms = args[0]
+    opts = args[1]
     hits = []
     tasks = []
 
-    if args.debug:
-        for motif_id, pssm in pssms.iteritems():
-            results = scan(pssm, seq, args.minscore, motif_id)
-            hits.extend(results)
-    else:
-        p = multiprocessing.Pool(args.cores)
-        for motif_id, pssm in pssms.iteritems():
-            tasks.append((pssm, seq, args.minscore, motif_id,))
-        results = [p.apply_async(scan, t) for t in tasks]
-
-        for r in results:
-            hits.extend(r.get())
-        p.close()
+    seq = _set_seq(seqrecord.seq, opts.alphabet)
+    for motif_id, pssm in pssms.iteritems():
+        results = scan(pssm, seq, opts.minscore, motif_id)
+        hits.extend(results)
 
     # Collect results
     final = collect(hits)
@@ -203,8 +226,10 @@ def _set_seq(seq, alphabet):
             raise
     return seq
 
+def _scan_all_star(a_b):
+    return scan_all(*a_b)
 
-def compute_background(fasta, alphabet):
+def compute_background(fasta, alphabet, cores=8):
     """Compute background probabiilities from all input sequences
     """
     print >> sys.stderr, "Calculating background probabilities...",
@@ -216,10 +241,12 @@ def compute_background(fasta, alphabet):
             content[letter] += seqobj.count(letter)
             total += seqobj.count(letter)
     pct_sum = 0
+
     for letter, count in content.iteritems():
         content[letter] = float(count) / total
         pct_sum += content[letter]
         print >> sys.stderr, "%s: %f" % (letter, content[letter]),
+
     print >> sys.stderr, ""
     assert (1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
     return content
@@ -236,7 +263,7 @@ def main():
         print >> sys.stderr, "Using uniform background probabilities"
         bg = None
     else:
-        bg = compute_background(args.fastafile, args.alphabet)
+        bg = compute_background(args.fastafile, args.alphabet, args.cores)
 
     # Load PWMs
     pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
@@ -245,23 +272,35 @@ def main():
         seq = _set_seq(Seq(args.testseq), args.alphabet)
         final = scan_all(pssms, seq, args)
         final['Sequence_ID'] = 'testseq'
+        final['Description'] = ''
         count += 1
     else:
         print >> sys.stderr, "Scanning sequences ",
 
         results = []
-        for seqrecord in SeqIO.parse(open(args.fastafile), "fasta"):
-            seq = _set_seq(seqrecord.seq, args.alphabet)
+        seq_iter = SeqIO.parse(open(args.fastafile), "fasta")
+        p = multiprocessing.Pool(args.cores)
+        for i, batch in enumerate(batch_iterator(seq_iter, 500)):
+            batch_results = p.map(_scan_all_star, 
+                            izip(batch, 
+                                 repeat(pssms),
+                                 repeat(args)
+                                )
+                            )
 
-            m = scan_all(pssms, seq, args)
-            m['Sequence_ID'] = seqrecord.id
+            # Process each result
+            for j, hits in enumerate(batch_results):
+                if hits is None: continue
+                hits['Sequence_ID'] = batch[j].id
+                hits['Description'] = batch[j].description
+                count += 1
+                results.append(hits)
+        p.close()
 
-            results.append(m)
-            count += 1
         final = pd.concat(results)
 
     cols = final.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
+    cols = cols[-2:] + cols[:-2]
     final[cols].to_csv(sys.stdout, sep="\t", index=False)
     toc = time.time()
 
