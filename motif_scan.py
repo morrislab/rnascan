@@ -192,26 +192,19 @@ def scan(pssm, seq, minscore, motif_id):
     return results
 
 
-def scan_all(pssms, seq, args, bg=None):
+def scan_all(seqrecord, *args):
     """
     Scan seq for all motifs in pssms
     """
+    pssms = args[0]
+    opts = args[1]
     hits = []
     tasks = []
 
-    if args.debug:
-        for motif_id, pssm in pssms.iteritems():
-            results = scan(pssm, seq, args.minscore, motif_id)
-            hits.extend(results)
-    else:
-        p = multiprocessing.Pool(args.cores)
-        for motif_id, pssm in pssms.iteritems():
-            tasks.append((pssm, seq, args.minscore, motif_id,))
-        results = [p.apply_async(scan, t) for t in tasks]
-
-        for r in results:
-            hits.extend(r.get())
-        p.close()
+    seq = _set_seq(seqrecord.seq, opts.alphabet)
+    for motif_id, pssm in pssms.iteritems():
+        results = scan(pssm, seq, opts.minscore, motif_id)
+        hits.extend(results)
 
     # Collect results
     final = collect(hits)
@@ -235,6 +228,8 @@ def _set_seq(seq, alphabet):
 
 
 def _compute_bg(seqrecord, *args):
+    """Internal function for computing background
+    """
     if seqrecord is None: return None
     content = defaultdict(int)
     seqobj = _set_seq(seqrecord.seq, args[0])
@@ -246,6 +241,8 @@ def _compute_bg(seqrecord, *args):
 def _compute_bg_star(a_b):
     return _compute_bg(*a_b)
 
+def _scan_all_star(a_b):
+    return scan_all(*a_b)
 
 def compute_background(fasta, alphabet, cores=8):
     """Compute background probabiilities from all input sequences
@@ -255,7 +252,7 @@ def compute_background(fasta, alphabet, cores=8):
     total = 0
     seq_iter = SeqIO.parse(open(fasta), "fasta")
     p = multiprocessing.Pool(cores)
-    for i, batch in enumerate(batch_iterator(seq_iter, 250)):
+    for i, batch in enumerate(batch_iterator(seq_iter, 500)):
         results = p.map(_compute_bg_star, izip(batch, repeat(alphabet)))
         for batch_content in results:
             if batch_content is None: continue
@@ -270,7 +267,6 @@ def compute_background(fasta, alphabet, cores=8):
         print >> sys.stderr, "%s: %f" % (letter, content[letter]),
 
     print >> sys.stderr, ""
-    sys.exit()
     return content
 
 
@@ -285,7 +281,7 @@ def main():
         print >> sys.stderr, "Using uniform background probabilities"
         bg = None
     else:
-        bg = compute_background(args.fastafile, args.alphabet)
+        bg = compute_background(args.fastafile, args.alphabet, args.cores)
 
     # Load PWMs
     pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
@@ -300,15 +296,25 @@ def main():
         print >> sys.stderr, "Scanning sequences ",
 
         results = []
-        for seqrecord in SeqIO.parse(open(args.fastafile), "fasta"):
-            seq = _set_seq(seqrecord.seq, args.alphabet)
+        seq_iter = SeqIO.parse(open(args.fastafile), "fasta")
+        p = multiprocessing.Pool(args.cores)
+        for i, batch in enumerate(batch_iterator(seq_iter, 500)):
+            batch_results = p.map(_scan_all_star, 
+                            izip(batch, 
+                                 repeat(pssms),
+                                 repeat(args)
+                                )
+                            )
 
-            m = scan_all(pssms, seq, args)
-            m['Sequence_ID'] = seqrecord.id
-            m['Description'] = seqrecord.description
+            # Process each result
+            for j, hits in enumerate(batch_results):
+                if hits is None: continue
+                hits['Sequence_ID'] = batch[j].id
+                hits['Description'] = batch[j].description
+                count += 1
+                results.append(hits)
+        p.close()
 
-            results.append(m)
-            count += 1
         final = pd.concat(results)
 
     cols = final.columns.tolist()
