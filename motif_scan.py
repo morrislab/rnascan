@@ -13,6 +13,7 @@ import sys
 import time
 import glob
 import os
+import re
 import argparse
 from collections import defaultdict
 import multiprocessing
@@ -20,10 +21,11 @@ from itertools import izip_longest, izip, repeat
 import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__version__ = 'v0.3.0'
+__version__ = 'v0.4.0'
 
 
 def getoptions():
@@ -201,7 +203,7 @@ def scan_all(seqrecord, *args):
     hits = []
     tasks = []
 
-    seq = _set_seq(seqrecord.seq, opts.alphabet)
+    seq = _set_seq(seqrecord, opts.alphabet)
     for motif_id, pssm in pssms.iteritems():
         results = scan(pssm, seq, opts.minscore, motif_id)
         hits.extend(results)
@@ -211,19 +213,28 @@ def scan_all(seqrecord, *args):
     return final
 
 
-def _set_seq(seq, alphabet):
-    if not isinstance(seq, Seq):
-        raise TypeError("Seq object must be supplied")
+def _set_seq(seqrec, alphabet):
+    """Pre-process the SeqRecord by setting the alphabet and performing
+    transcription if necessary
+    """
+    if not isinstance(seqrec, SeqRecord):
+        raise TypeError("SeqRecord object must be supplied")
 
     if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA):
         # If RNA alphabet is specified and input sequences are in DNA, we need
         # to transcribe them to RNA
         try:
-            seq = seq.transcribe()
+            seq = seqrec.seq.transcribe()
             seq.alphabet = alphabet
             seq = seq.upper()
         except:
             raise
+    
+    ## If strand is specified, reverse-complement the sequence
+    #strand_match = re.search(r'strand=([+-])', seqrec.description)
+    #if strand_match and strand_match.group(1) == "-":
+        #seq = seq.reverse_complement()
+
     return seq
 
 def _scan_all_star(a_b):
@@ -236,7 +247,7 @@ def compute_background(fasta, alphabet, cores=8):
     content = defaultdict(int)
     total = 0
     for seqrecord in SeqIO.parse(open(fasta), "fasta"):
-        seqobj = _set_seq(seqrecord.seq, alphabet)
+        seqobj = _set_seq(seqrecord, alphabet)
         for letter in alphabet.letters:
             content[letter] += seqobj.count(letter)
             total += seqobj.count(letter)
@@ -269,8 +280,8 @@ def main():
     pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
 
     if args.testseq is not None:
-        seq = _set_seq(Seq(args.testseq), args.alphabet)
-        final = scan_all(pssms, seq, args)
+        #seq = _set_seq(SeqRecord(Seq(args.testseq)), args.alphabet)
+        final = scan_all(SeqRecord(Seq(args.testseq)), pssms, args)
         final['Sequence_ID'] = 'testseq'
         final['Description'] = ''
         count += 1
