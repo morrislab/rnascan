@@ -290,23 +290,32 @@ def main():
 
         results = []
         seq_iter = SeqIO.parse(open(args.fastafile), "fasta")
-        p = multiprocessing.Pool(args.cores)
-        for i, batch in enumerate(batch_iterator(seq_iter, 500)):
-            batch_results = p.map(_scan_all_star, 
-                            izip(batch, 
-                                 repeat(pssms),
-                                 repeat(args)
-                                )
-                            )
 
-            # Process each result
-            for j, hits in enumerate(batch_results):
-                if hits is None: continue
-                hits['Sequence_ID'] = batch[j].id
-                hits['Description'] = batch[j].description
-                count += 1
+        if args.debug:
+            for seqrecord in seq_iter:
+                hits = scan_all(seqrecord, pssms, args)
+                hits['Sequence_ID'] = seqrecord.id
+                hits['Description'] = seqrecord.description
                 results.append(hits)
-        p.close()
+                count += 1
+        else:
+            p = multiprocessing.Pool(args.cores)
+            for i, batch in enumerate(batch_iterator(seq_iter, 500)):
+                batch_results = p.map(_scan_all_star, 
+                                izip(batch, 
+                                     repeat(pssms),
+                                     repeat(args)
+                                    )
+                                )
+
+                # Process each result
+                for j, hits in enumerate(batch_results):
+                    if hits is None: continue
+                    hits['Sequence_ID'] = batch[j].id
+                    hits['Description'] = batch[j].description
+                    count += 1
+                    results.append(hits)
+            p.close()
 
         final = pd.concat(results)
 
