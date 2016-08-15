@@ -8,16 +8,17 @@
 # This tool was motivated by the RNA RBP motif scanning tool from CISBP-RNA:
 # http://cisbp-rna.ccbr.utoronto.ca/TFTools.php
 
-from RNACompete import secondarystructure, matrix
 import sys
 import time
 import glob
+import fileinput
 import os
-import re
+#import re
 import argparse
 from collections import defaultdict
 import multiprocessing
-from itertools import izip_longest, izip, repeat
+from itertools import izip, repeat
+from RNACompete import secondarystructure, matrix
 import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
@@ -25,7 +26,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__version__ = 'v0.4.0'
+__version__ = 'v0.4.1'
 
 
 def getoptions():
@@ -84,7 +85,7 @@ def getoptions():
     else:
         args.alphabet = IUPAC.IUPACUnambiguousDNA()
 
-    return (args)
+    return args
 
 def batch_iterator(iterator, batch_size):
     """Returns lists of length batch_size.
@@ -116,21 +117,21 @@ def batch_iterator(iterator, batch_size):
             yield batch
 
 
-def load_motifs(db, *args):
+def load_motifs(dbdir, *args):
     """
     Load all motifs from given directory. Will look for *.txt files
     """
-    motifs = {}
+    motifs_set = {}
     print >> sys.stderr, "Loading motifs ",
     tic = time.time()
-    for file in glob.glob(db + "/*.txt"):
+    for mfile in glob.glob(dbdir + "/*.txt"):
         try:
-            id = os.path.splitext(os.path.basename(file))[0]
-            motifs[id] = pwm2pssm(file, *args)
+            motif_id = os.path.splitext(os.path.basename(mfile))[0]
+            motifs_set[motif_id] = pwm2pssm(mfile, *args)
         except ValueError:
-            print >> sys.stderr, "\nFailed to load motif %s" % file
+            print >> sys.stderr, "\nFailed to load motif %s" % mfile
         except KeyError:
-            print >> sys.stderr, "\nFailed to load motif %s" % file
+            print >> sys.stderr, "\nFailed to load motif %s" % mfile
             print >> sys.stderr, "Check that you are using the correct --type"
             raise
         except:
@@ -140,35 +141,34 @@ def load_motifs(db, *args):
         sys.stderr.flush()
     toc = time.time()
     print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
-    print >> sys.stderr, "Found %d motifs" % len(motifs)
-    return motifs
+    print >> sys.stderr, "Found %d motifs" % len(motifs_set)
+    return motifs_set
 
 
-def pwm2pssm(file, pseudocount, alphabet, bg=None):
+def pwm2pssm(pwm_file, pseudocount, alphabet, background=None):
     """
     Convert load PWM and convert it to PSSM (take the log_odds)
     """
-    pwm = pd.read_table(file)
+    pwm = pd.read_table(pwm_file)
     pwm = pwm.drop(pwm.columns[0], 1).to_dict(orient='list')
     pwm = motifs.Motif(alphabet=alphabet, counts=pwm)
     pwm = pwm.counts.normalize(pseudocount)
 
     # Can optionally add background, but for now assuming uniform probability
-    pssm = pwm.log_odds(background=bg)
+    pssm = pwm.log_odds(background=background)
 
     pssm = matrix.ExtendedPositionSpecificScoringMatrix(pssm.alphabet, pssm)
 
-    return(pssm)
+    return pssm
 
 
-def collect(x):
-    """
-    Finalize results into a DataFrame for output
+def collect(motif_hits):
+    """ Finalize results into a DataFrame for output
     """
 
     # Create DataFrame from motif hits
-    hits = pd.DataFrame(x, columns=['Motif_ID', 'Start', 'End', 'Sequence',
-                                    'LogOdds'])
+    hits = pd.DataFrame(motif_hits, columns=['Motif_ID', 'Start', 'End', 'Sequence',
+                                             'LogOdds'])
 
     # Merge metadata with hits
     return hits.sort_values(['Start', 'Motif_ID'])
@@ -198,7 +198,6 @@ def scan_all(seqrecord, *args):
     pssms = args[0]
     opts = args[1]
     hits = []
-    tasks = []
 
     seq = _set_seq(seqrecord, opts.alphabet)
     for motif_id, pssm in pssms.iteritems():
@@ -226,7 +225,7 @@ def _set_seq(seqrec, alphabet):
             seq = seq.upper()
         except:
             raise
-    
+   
     ## If strand is specified, reverse-complement the sequence
     #strand_match = re.search(r'strand=([+-])', seqrec.description)
     #if strand_match and strand_match.group(1) == "-":
@@ -234,8 +233,10 @@ def _set_seq(seqrec, alphabet):
 
     return seq
 
+
 def _scan_all_star(a_b):
     return scan_all(*a_b)
+
 
 def compute_background(fasta, alphabet, cores=8):
     """Compute background probabiilities from all input sequences
@@ -243,7 +244,9 @@ def compute_background(fasta, alphabet, cores=8):
     print >> sys.stderr, "Calculating background probabilities...",
     content = defaultdict(int)
     total = 0
-    for seqrecord in SeqIO.parse(open(fasta), "fasta"):
+    fin = fileinput.input(fasta,
+                          openhook=fileinput.hook_compressed)
+    for seqrecord in SeqIO.parse(fin, "fasta"):
         seqobj = _set_seq(seqrecord, alphabet)
         for letter in alphabet.letters:
             content[letter] += seqobj.count(letter)
@@ -286,7 +289,9 @@ def main():
         print >> sys.stderr, "Scanning sequences ",
 
         results = []
-        seq_iter = SeqIO.parse(open(args.fastafile), "fasta")
+        fin = fileinput.input(args.fastafile,
+                              openhook=fileinput.hook_compressed)
+        seq_iter = SeqIO.parse(fin, "fasta")
 
         if args.debug:
             for seqrecord in seq_iter:
@@ -298,22 +303,23 @@ def main():
         else:
             p = multiprocessing.Pool(args.cores)
             for i, batch in enumerate(batch_iterator(seq_iter, 500)):
-                batch_results = p.map(_scan_all_star, 
-                                izip(batch, 
-                                     repeat(pssms),
-                                     repeat(args)
-                                    )
-                                )
+                batch_results = p.map(_scan_all_star, izip(batch,
+                                                           repeat(pssms),
+                                                           repeat(args)
+                                                          )
+                                     )
 
                 # Process each result
                 for j, hits in enumerate(batch_results):
-                    if hits is None: continue
+                    if hits is None: 
+                        continue
                     hits['Sequence_ID'] = batch[j].id
                     hits['Description'] = batch[j].description
                     count += 1
                     results.append(hits)
             p.close()
 
+        fin.close()
         final = pd.concat(results)
 
     cols = final.columns.tolist()
