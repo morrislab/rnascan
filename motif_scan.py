@@ -39,24 +39,21 @@ def getoptions():
                         "/db/pwms",
                         help="Directory of PWMs [%(default)s]")
     parser.add_argument('-p', '--pseudocount', type=float,
-                        dest="pseudocount",
-                        default=0,
+                        dest="pseudocount", default=0,
                         help="Pseudocount for normalizing PWM. [%(default)s]")
     #parser.add_argument('-r', '--rbpinfo', type='string', dest='rbpinfo',
         #default=os.path.dirname(os.path.abspath(__file__)) +
         #"/db/RBP_Information_all_motifs.txt",
         #help="RBP info for adding meta data to results. [%(default)s]")
     parser.add_argument('-t', '--type', dest='seqtype',
-                        choices=['DNA', 'RNA', 'SS'],
-                        default="RNA",
+                        choices=['DNA', 'RNA', 'SS'], default="RNA",
                         help=("Alphabet of PWM (DNA|RNA|SS for "
                               "RNAContextualSecondaryStructure). "
                               "[%(default)s]"))
     parser.add_argument('-m', '--minscore', type=float, dest='minscore',
                         default=6,
                         help="Minimum score for motif hits. [%(default)s]")
-    parser.add_argument('-s', '--seq', dest='testseq',
-                        default=None,
+    parser.add_argument('-s', '--seq', dest='testseq', default=None,
                         help=("Supply a test sequence to scan. FASTA files "
                               " will be ignored."))
     parser.add_argument('-c', type=int, default=8,
