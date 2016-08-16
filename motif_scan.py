@@ -13,7 +13,7 @@ import time
 import glob
 import fileinput
 import os
-#import re
+import warnings
 import argparse
 from collections import defaultdict
 import multiprocessing
@@ -244,7 +244,7 @@ def _scan_all_star(a_b):
 def compute_background(fasta, alphabet, cores=8):
     """Compute background probabiilities from all input sequences
     """
-    print >> sys.stderr, "Calculating background probabilities...",
+    print >> sys.stderr, "Calculating background probabilities..."
     content = defaultdict(int)
     total = 0
     fin = fileinput.input(fasta,
@@ -258,8 +258,12 @@ def compute_background(fasta, alphabet, cores=8):
 
     for letter, count in content.iteritems():
         content[letter] = float(count) / total
+        if content[letter] < 0.0001:
+            warnings.warn("Letter %s has very low content: %0.2f" % (letter, content[letter]), Warning)
         pct_sum += content[letter]
-        print >> sys.stderr, "%s: %f" % (letter, content[letter]),
+
+    for letter, value in content.iteritems():
+        print >> sys.stderr, "%s: %f" % (letter, value),
 
     print >> sys.stderr, ""
     assert (1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
