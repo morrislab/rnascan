@@ -87,6 +87,7 @@ def getoptions():
 
     return args
 
+
 def batch_iterator(iterator, batch_size):
     """Returns lists of length batch_size.
 
@@ -225,13 +226,13 @@ def _set_seq(seqrec, alphabet):
             seq = seq.upper()
         except:
             raise
-   
+
     ## If strand is specified, reverse-complement the sequence
     #strand_match = re.search(r'strand=([+-])', seqrec.description)
     #if strand_match and strand_match.group(1) == "-":
         #seq = seq.reverse_complement()
 
-    return seq
+    return seqrec.seq
 
 
 def _scan_all_star(a_b):
@@ -311,7 +312,7 @@ def main():
 
                 # Process each result
                 for j, hits in enumerate(batch_results):
-                    if hits is None: 
+                    if hits is None:
                         continue
                     hits['Sequence_ID'] = batch[j].id
                     hits['Description'] = batch[j].description
