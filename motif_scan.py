@@ -31,8 +31,7 @@ __version__ = 'v0.4.1'
 
 def getoptions():
     desc = "Scan sequence for motif binding sites."
-    parser = argparse.ArgumentParser(description=desc,
-                                     version=__version__)
+    parser = argparse.ArgumentParser(description=desc, version=__version__)
     parser.add_argument('fastafile', metavar='FASTA', nargs='?',
                         help="Input FASTA file")
     parser.add_argument('-d', dest="pwm_dir",
@@ -57,8 +56,7 @@ def getoptions():
     parser.add_argument('-s', '--seq', dest='testseq', default=None,
                         help=("Supply a test sequence to scan. FASTA files "
                               " will be ignored."))
-    parser.add_argument('-c', type=int, default=8,
-                        dest="cores", metavar="CORES",
+    parser.add_argument('-c', type=int, default=8, dest="cores",
                         help="Number of processing cores [%(default)s]")
     #parser.add_argument('-x', '--excel', action="store_true", dest="excel",
             #default=False,
