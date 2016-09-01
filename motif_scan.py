@@ -31,7 +31,7 @@ __version__ = 'v0.5.0'
 
 
 def getoptions():
-    desc = "Scan sequence for motif binding sites."
+    desc = "Scan sequence for motif binding sites. Results sent to STDOUT."
     parser = argparse.ArgumentParser(description=desc, version=__version__)
     parser.add_argument('fastafile', metavar='FASTA', nargs='?',
                         help="Input FASTA file")
@@ -300,12 +300,13 @@ def main():
         bg = None
     else:
         if args.custom_background is not None:
-            print >> sys.stderr, "Reading custom background probabilities"
+            print >> sys.stderr, ("Reading custom background probabilities "                  "from %s" % args.custom_background)
             # load custom background
+            # http://stackoverflow.com/a/11027069
             with open(args.custom_background, 'r') as fin:
                 bg = fin.read()
                 bg = ast.literal_eval(bg)
-                print dict(bg)
+                print >> sys.stderr, dict(bg)
         else:
             bg = compute_background(args.fastafile, args.alphabet, args.cores)
 
