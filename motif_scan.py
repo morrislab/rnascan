@@ -198,7 +198,7 @@ def scan_all(seqrecord, *args):
     opts = args[1]
     hits = []
 
-    seq = _set_seq(seqrecord, opts.alphabet)
+    seq = preprocess_seq(seqrecord, opts.alphabet)
     for motif_id, pssm in pssms.iteritems():
         results = scan(pssm, seq, opts.minscore, motif_id)
         hits.extend(results)
@@ -208,9 +208,11 @@ def scan_all(seqrecord, *args):
     return final
 
 
-def _set_seq(seqrec, alphabet):
+def preprocess_seq(seqrec, alphabet):
     """Pre-process the SeqRecord by setting the alphabet and performing
-    transcription if necessary
+    transcription if necessary.
+
+    Return Seq object
     """
     if not isinstance(seqrec, SeqRecord):
         raise TypeError("SeqRecord object must be supplied")
@@ -248,7 +250,7 @@ def compute_background(fasta, alphabet, cores=8):
     fin = fileinput.input(fasta,
                           openhook=fileinput.hook_compressed)
     for seqrecord in SeqIO.parse(fin, "fasta"):
-        seqobj = _set_seq(seqrecord, alphabet)
+        seqobj = preprocess_seq(seqrecord, alphabet)
         for letter in alphabet.letters:
             content[letter] += seqobj.count(letter)
             total += seqobj.count(letter)
