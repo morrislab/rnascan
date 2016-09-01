@@ -23,7 +23,7 @@ import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import IUPAC
+from Bio.Alphabet import DNAAlphabet, IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 __version__ = 'v0.4.1'
@@ -170,7 +170,8 @@ def preprocess_seq(seqrec, alphabet):
     if not isinstance(seqrec, SeqRecord):
         raise TypeError("SeqRecord object must be supplied")
 
-    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA):
+    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA) and \
+        isinstance(seqrec.seq.alphabet, DNAAlphabet):
         # If RNA alphabet is specified and input sequences are in DNA, we need
         # to transcribe them to RNA
         try:
