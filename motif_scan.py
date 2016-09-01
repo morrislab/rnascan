@@ -15,6 +15,7 @@ import fileinput
 import os
 import warnings
 import argparse
+import ast
 from collections import defaultdict
 import multiprocessing
 from itertools import izip, repeat
@@ -23,10 +24,10 @@ import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import DNAAlphabet, IUPAC
+from Bio.Alphabet import RNAAlphabet, IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__version__ = 'v0.4.1'
+__version__ = 'v0.5.0'
 
 
 def getoptions():
@@ -56,22 +57,38 @@ def getoptions():
     parser.add_argument('-s', '--seq', dest='testseq', default=None,
                         help=("Supply a test sequence to scan. FASTA files "
                               " will be ignored."))
-    parser.add_argument('-c', type=int, default=8, dest="cores",
+    parser.add_argument('-c', '--cores', type=int, default=8, dest="cores",
                         help="Number of processing cores [%(default)s]")
     #parser.add_argument('-x', '--excel', action="store_true", dest="excel",
             #default=False,
             #help="Format the RBP_ID column with =HYPERLINK(url) for " +
             #"import into Excel [%(default)s]")
-    parser.add_argument('-u', action="store_true", default=False,
-                        dest="uniform_background",
+    parser.add_argument('-u', '--uniformbg', action="store_true",
+                        default=False, dest="uniform_background",
                         help=("Use uniform background for calculating "
                               "log-odds [%(default)s]. Default is to compute "
-                              "background from input sequences"))
+                              "background from input sequences. This option "
+                              "is mutually exclusive with -B."))
+    parser.add_argument('-B', '--bgonly', action="store_true", default=False,
+                        dest="bgonly",
+                        help=("Compute background probabilities from input "
+                              "sequences (STDOUT) and exit. Useful for "
+                              "getting background probabilities from a "
+                              "superset of sequences. Then, these values can "
+                              "be subsequently supplied using -b. "
+                              "[%(default)s]"))
+    parser.add_argument('-b', '--bg', default=None, dest="custom_background",
+                        help=("Load file of pre-computed background "
+                              "probabilities"))
     parser.add_argument('-x', '--debug', action="store_true", default=False,
                         dest="debug",
                         help=("Turn on debug mode  "
                               "(aka disable parallelization) [%(default)s]"))
     args = parser.parse_args()
+
+    if args.uniform_background is True and args.custom_background is not None:
+        parser.error("You cannot set uniform and custom background options "
+                     "at the same time\n")
 
     if args.testseq is None and args.fastafile is None:
         parser.error("Missing input FASTA file or test sequence\n")
@@ -171,7 +188,7 @@ def preprocess_seq(seqrec, alphabet):
         raise TypeError("SeqRecord object must be supplied")
 
     if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA) and \
-        isinstance(seqrec.seq.alphabet, DNAAlphabet):
+        not isinstance(seqrec.seq.alphabet, RNAAlphabet):
         # If RNA alphabet is specified and input sequences are in DNA, we need
         # to transcribe them to RNA
         try:
@@ -282,7 +299,23 @@ def main():
         print >> sys.stderr, "Using uniform background probabilities"
         bg = None
     else:
-        bg = compute_background(args.fastafile, args.alphabet, args.cores)
+        if args.custom_background is not None:
+            print >> sys.stderr, "Reading custom background probabilities"
+            # load custom background
+            with open(args.custom_background, 'r') as fin:
+                bg = fin.read()
+                bg = ast.literal_eval(bg)
+                print dict(bg)
+        else:
+            bg = compute_background(args.fastafile, args.alphabet, args.cores)
+
+            if args.bgonly:
+                # Print background probabilities and quit
+                print >> sys.stderr, "Saving background probabilties in %s" % \
+                    bgfile
+                print dict(bg)
+                sys.exit()
+
 
     # Load PWMs
     pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
