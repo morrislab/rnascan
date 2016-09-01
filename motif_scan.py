@@ -161,6 +161,35 @@ def pwm2pssm(pwm_file, pseudocount, alphabet, background=None):
     return pssm
 
 
+def preprocess_seq(seqrec, alphabet):
+    """Pre-process the SeqRecord by setting the alphabet and performing
+    transcription if necessary.
+
+    Return Seq object
+    """
+    if not isinstance(seqrec, SeqRecord):
+        raise TypeError("SeqRecord object must be supplied")
+
+    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA):
+        # If RNA alphabet is specified and input sequences are in DNA, we need
+        # to transcribe them to RNA
+        try:
+            seq = seqrec.seq.transcribe()
+            seq.alphabet = alphabet
+            seq = seq.upper()
+        except:
+            raise
+    else:
+        seq = seqrec.seq
+
+    ## If strand is specified, reverse-complement the sequence
+    #strand_match = re.search(r'strand=([+-])', seqrec.description)
+    #if strand_match and strand_match.group(1) == "-":
+        #seq = seq.reverse_complement()
+
+    return seq
+
+
 def collect(motif_hits):
     """ Finalize results into a DataFrame for output
     """
@@ -206,35 +235,6 @@ def scan_all(seqrecord, *args):
     # Collect results
     final = collect(hits)
     return final
-
-
-def preprocess_seq(seqrec, alphabet):
-    """Pre-process the SeqRecord by setting the alphabet and performing
-    transcription if necessary.
-
-    Return Seq object
-    """
-    if not isinstance(seqrec, SeqRecord):
-        raise TypeError("SeqRecord object must be supplied")
-
-    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA):
-        # If RNA alphabet is specified and input sequences are in DNA, we need
-        # to transcribe them to RNA
-        try:
-            seq = seqrec.seq.transcribe()
-            seq.alphabet = alphabet
-            seq = seq.upper()
-        except:
-            raise
-    else:
-        seq = seqrec.seq
-
-    ## If strand is specified, reverse-complement the sequence
-    #strand_match = re.search(r'strand=([+-])', seqrec.description)
-    #if strand_match and strand_match.group(1) == "-":
-        #seq = seq.reverse_complement()
-
-    return seq
 
 
 def _scan_all_star(a_b):
