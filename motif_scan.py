@@ -312,8 +312,7 @@ def main():
 
             if args.bgonly:
                 # Print background probabilities and quit
-                print >> sys.stderr, "Saving background probabilties in %s" % \
-                    bgfile
+                print >> sys.stderr, "Saving background probabilties in %s"
                 print dict(bg)
                 sys.exit()
 
