@@ -2,16 +2,16 @@
 """Extended alphabet for RNA contextual secondary structure
 
 """
-from Bio.Alphabet import SingleLetterAlphabet
+from Bio.Alphabet import SecondaryStructure
 
 
-class RNAContextualSecondaryStructure(SingleLetterAlphabet):
+class RNAContextualSecondaryStructure(SecondaryStructure):
     """Extended alphabet for RNA contextual secondary structure"""
 
     letters = "EHTBLRM"
 
 
-class RNAContextualSequenceSecondaryStructure(SingleLetterAlphabet):
+class RNAContextualSequenceSecondaryStructure(SecondaryStructure):
     """Extended alphabet for RNA contextual secondary structure and
     sequence combined"""
 
