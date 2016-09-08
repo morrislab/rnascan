@@ -38,20 +38,20 @@ def getoptions():
     parser = argparse.ArgumentParser(description=desc, version=__version__)
     parser.add_argument('fastafiles', metavar='FASTA', nargs='+',
                         help="Input sequence and structure FASTA files")
-    parser.add_argument('-d', dest="pwm_dir",
+    parser.add_argument('-d', dest="pfm_dir",
                         default=os.path.dirname(os.path.abspath(__file__)) +
                         "/db/pwms",
-                        help="Directory of PWMs [%(default)s]")
+                        help="Directory of PFMs [%(default)s]")
     parser.add_argument('-p', '--pseudocount', type=float,
                         dest="pseudocount", default=0,
-                        help="Pseudocount for normalizing PWM. [%(default)s]")
+                        help="Pseudocount for normalizing PFM. [%(default)s]")
     #parser.add_argument('-r', '--rbpinfo', type='string', dest='rbpinfo',
         #default=os.path.dirname(os.path.abspath(__file__)) +
         #"/db/RBP_Information_all_motifs.txt",
         #help="RBP info for adding meta data to results. [%(default)s]")
     parser.add_argument('-t', '--type', dest='seqtype',
                         choices=['DNA', 'RNA', 'SS', 'RNASS'], default="RNA",
-                        help=("Alphabet of PWM (DNA|RNA|SS for "
+                        help=("Alphabet of PFM (DNA|RNA|SS for "
                               "ContextualSecondaryStructure). "
                               "[%(default)s]"))
     parser.add_argument('-m', '--minscore', type=float, dest='minscore',
@@ -148,7 +148,7 @@ def load_motifs(dbdir, *args):
     for mfile in glob.glob(dbdir + "/*.txt"):
         try:
             motif_id = os.path.splitext(os.path.basename(mfile))[0]
-            motifs_set[motif_id] = pwm2pssm(mfile, *args)
+            motifs_set[motif_id] = pfm2pssm(mfile, *args)
         except ValueError:
             print >> sys.stderr, "\nFailed to load motif %s" % mfile
         except KeyError:
@@ -166,17 +166,17 @@ def load_motifs(dbdir, *args):
     return motifs_set
 
 
-def pwm2pssm(pwm_file, pseudocount, alphabet, background=None):
+def pfm2pssm(pfm_file, pseudocount, alphabet, background=None):
     """
-    Convert load PWM and convert it to PSSM (take the log_odds)
+    Convert load PFM and convert it to PSSM (take the log_odds)
     """
-    pwm = pd.read_table(pwm_file)
-    pwm = pwm.drop(pwm.columns[0], 1).to_dict(orient='list')
-    pwm = motifs.Motif(alphabet=alphabet, counts=pwm)
-    pwm = pwm.counts.normalize(pseudocount)
+    pfm = pd.read_table(pfm_file)
+    pfm = pfm.drop(pfm.columns[0], 1).to_dict(orient='list')
+    pfm = motifs.Motif(alphabet=alphabet, counts=pfm)
+    pfm = pfm.counts.normalize(pseudocount)
 
     # Can optionally add background, but for now assuming uniform probability
-    pssm = pwm.log_odds(background=background)
+    pssm = pfm.log_odds(background=background)
 
     pssm = matrix.ExtendedPositionSpecificScoringMatrix(pssm.alphabet, pssm)
 
@@ -343,8 +343,8 @@ def main():
                 sys.exit()
 
 
-    # Load PWMs
-    pssms = load_motifs(args.pwm_dir, args.pseudocount, args.alphabet, bg)
+    # Load PFMs
+    pssms = load_motifs(args.pfm_dir, args.pseudocount, args.alphabet, bg)
 
     if args.testseq is not None:
         #seq = _set_seq(SeqRecord(Seq(args.testseq)), args.alphabet)
