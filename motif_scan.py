@@ -288,7 +288,7 @@ def parse_sequences(fastas, alphabet):
     return seqiter
 
 
-def compute_background(fastas, alphabet):
+def compute_background(fastas, alphabet, verbose=True):
     """Compute background probabiilities from all input sequences
     """
     print >> sys.stderr, "Calculating background probabilities..."
@@ -309,7 +309,7 @@ def compute_background(fastas, alphabet):
             warnings.warn("Letter %s has low content: %0.2f" % (letter, content[letter]), Warning)
         pct_sum += content[letter]
 
-    print >> sys.stderr, dict(content)
+    if verbose: print >> sys.stderr, dict(content)
     assert abs(1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
     return content
 
