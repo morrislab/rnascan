@@ -19,7 +19,8 @@ import ast
 from collections import defaultdict
 import multiprocessing
 from itertools import izip, repeat
-from RNACompete import secondarystructure, matrix
+from RNACompete import secondarystructure as ss, matrix
+from RNACompete.SeqStruct import SeqStruct
 import pandas as pd
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
@@ -27,14 +28,14 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-__version__ = 'v0.5.0'
+__version__ = 'v0.6.0'
 
 
 def getoptions():
     desc = "Scan sequence for motif binding sites. Results sent to STDOUT."
     parser = argparse.ArgumentParser(description=desc, version=__version__)
-    parser.add_argument('fastafile', metavar='FASTA', nargs='?',
-                        help="Input FASTA file")
+    parser.add_argument('fastafiles', metavar='FASTA', nargs='+',
+                        help="Input sequence and structure FASTA files")
     parser.add_argument('-d', dest="pwm_dir",
                         default=os.path.dirname(os.path.abspath(__file__)) +
                         "/db/pwms",
@@ -47,7 +48,7 @@ def getoptions():
         #"/db/RBP_Information_all_motifs.txt",
         #help="RBP info for adding meta data to results. [%(default)s]")
     parser.add_argument('-t', '--type', dest='seqtype',
-                        choices=['DNA', 'RNA', 'SS'], default="RNA",
+                        choices=['DNA', 'RNA', 'SS', 'RNASS'], default="RNA",
                         help=("Alphabet of PWM (DNA|RNA|SS for "
                               "RNAContextualSecondaryStructure). "
                               "[%(default)s]"))
@@ -90,13 +91,15 @@ def getoptions():
         parser.error("You cannot set uniform and custom background options "
                      "at the same time\n")
 
-    if args.testseq is None and args.fastafile is None:
-        parser.error("Missing input FASTA file or test sequence\n")
+    if len(args.fastafiles) == 2:
+        args.seqtype = 'RNASS'
 
     if args.seqtype == 'SS':
-        args.alphabet = secondarystructure.RNAContextualSecondaryStructure()
+        args.alphabet = ss.RNAContextualSecondaryStructure()
     elif args.seqtype == 'RNA':
         args.alphabet = IUPAC.IUPACUnambiguousRNA()
+    elif args.seqtype == 'RNASS':
+        args.alphabet = ss.RNAContextualSequenceSecondaryStructure()
     else:
         args.alphabet = IUPAC.IUPACUnambiguousDNA()
 
@@ -259,15 +262,40 @@ def _scan_all_star(a_b):
     return scan_all(*a_b)
 
 
-def compute_background(fasta, alphabet, cores=8):
+def generate_seqstruct(seqi, structi):
+    """For RNASS, combined sequence and structure to generate a new
+    SeqRecord with alphabet RNAContextualSequenceSecondaryStructure
+    """
+    for seqrec, structrec in zip(seqi, structi):
+        rna = preprocess_seq(seqrec, IUPAC.IUPACUnambiguousRNA())
+        yield SeqRecord(SeqStruct(rna, structrec.seq))
+
+
+def parse_sequences(fastas, alphabet):
+    """Load FASTA sequence and return SeqRecord iterator
+    """
+    fin1 = fileinput.input(fastas[0],
+                          openhook=fileinput.hook_compressed)
+    seqiter = SeqIO.parse(fin1, 'fasta')
+
+    if len(fastas) == 2:
+        fin2 = fileinput.input(fastas[1],
+                               openhook=fileinput.hook_compressed)
+        structiter = SeqIO.parse(fin2, 'fasta')
+        seqiter = generate_seqstruct(seqiter, structiter)
+
+    return seqiter
+
+
+def compute_background(fastas, alphabet, cores=8):
     """Compute background probabiilities from all input sequences
     """
     print >> sys.stderr, "Calculating background probabilities..."
     content = defaultdict(int)
     total = 0
-    fin = fileinput.input(fasta,
-                          openhook=fileinput.hook_compressed)
-    for seqrecord in SeqIO.parse(fin, "fasta"):
+    seqiter = parse_sequences(fastas, alphabet)
+
+    for seqrecord in seqiter:
         seqobj = preprocess_seq(seqrecord, alphabet)
         for letter in alphabet.letters:
             content[letter] += seqobj.count(letter)
@@ -275,15 +303,12 @@ def compute_background(fasta, alphabet, cores=8):
     pct_sum = 0
 
     for letter, count in content.iteritems():
-        content[letter] = float(count) / total
+        content[letter] = (float(count) + 1) / total    # add pseudocount
         if content[letter] < 0.0001:
             warnings.warn("Letter %s has very low content: %0.2f" % (letter, content[letter]), Warning)
         pct_sum += content[letter]
 
-    for letter, value in content.iteritems():
-        print >> sys.stderr, "%s: %f" % (letter, value),
-
-    print >> sys.stderr, ""
+    print >> sys.stderr, dict(content)
     assert (1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
     return content
 
@@ -308,11 +333,10 @@ def main():
                 bg = ast.literal_eval(bg)
                 print >> sys.stderr, dict(bg)
         else:
-            bg = compute_background(args.fastafile, args.alphabet, args.cores)
+            bg = compute_background(args.fastafiles, args.alphabet, args.cores)
 
             if args.bgonly:
                 # Print background probabilities and quit
-                print >> sys.stderr, "Saving background probabilties in %s"
                 print dict(bg)
                 sys.exit()
 
