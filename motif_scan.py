@@ -288,7 +288,7 @@ def parse_sequences(fastas, alphabet):
     return seqiter
 
 
-def compute_background(fastas, alphabet, cores=8):
+def compute_background(fastas, alphabet):
     """Compute background probabiilities from all input sequences
     """
     print >> sys.stderr, "Calculating background probabilities..."
