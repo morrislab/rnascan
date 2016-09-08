@@ -292,7 +292,7 @@ def compute_background(fastas, alphabet, cores=8):
     """
     print >> sys.stderr, "Calculating background probabilities..."
     content = defaultdict(int)
-    total = 0
+    total = len(alphabet.letters)       # add psuedocount for each letter
     seqiter = parse_sequences(fastas, alphabet)
 
     for seqrecord in seqiter:
@@ -304,12 +304,12 @@ def compute_background(fastas, alphabet, cores=8):
 
     for letter, count in content.iteritems():
         content[letter] = (float(count) + 1) / total    # add pseudocount
-        if content[letter] < 0.0001:
-            warnings.warn("Letter %s has very low content: %0.2f" % (letter, content[letter]), Warning)
+        if content[letter] <= 0.05:
+            warnings.warn("Letter %s has low content: %0.2f" % (letter, content[letter]), Warning)
         pct_sum += content[letter]
 
     print >> sys.stderr, dict(content)
-    assert (1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
+    assert abs(1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
     return content
 
 
