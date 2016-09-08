@@ -62,6 +62,6 @@ class RNAContextualSequenceSecondaryStructure(SecondaryStructure):
     def convert(cls, seqletter, structletter):
       """Return SeqStruct letter for given seqletter and structletter
       """
-        return cls.conversion[seqletter][structletter]
+      return cls.conversion[seqletter][structletter]
 
 
