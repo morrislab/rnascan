@@ -1,12 +1,13 @@
 #!/usr/bin/env python
-#
-# Calculates motif scores for all PWMs in a given set of sequences in FASTA
-# format
-#
-# Requires python 2.7+
-#
-# This tool was motivated by the RNA RBP motif scanning tool from CISBP-RNA:
-# http://cisbp-rna.ccbr.utoronto.ca/TFTools.php
+"""
+Calculates motif scores for all PWMs in a given set of sequences in FASTA
+format
+
+Requires python 2.7+
+
+This tool was motivated by the RNA RBP motif scanning tool from CISBP-RNA:
+http://cisbp-rna.ccbr.utoronto.ca/TFTools.php
+"""
 
 import sys
 import time
