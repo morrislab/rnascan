@@ -43,3 +43,7 @@ class SeqStruct(Seq):
             seqstruct_sequence += RNASS.convert(i, j)
 
         return seqstruct_sequence
+
+if __name__ == "__main__":
+    s = SeqStruct('AGC', 'BBB')
+    print s
