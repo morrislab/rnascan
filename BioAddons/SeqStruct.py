@@ -7,13 +7,13 @@
 # as part of this package.
 # Modified Copyright 2016 by Kevin Ha
 """This class inherits Bio.Seq that adds functionality for handling
-RNAContextualSequenceSecondaryStructure alphabets.
+ContextualSequenceSecondaryStructure alphabets.
 
 Specifically, will take a RNA sequence and contextual secondary structure
-sequence and convert it to a unified RNAContextualSequenceSecondaryStructure
+sequence and convert it to a unified ContextualSequenceSecondaryStructure
 alphabet.
 """
-from secondarystructure import RNAContextualSequenceSecondaryStructure as RNASS
+from Alphabet import ContextualSequenceSecondaryStructure as RNASS
 from Bio.Seq import Seq
 
 
@@ -21,7 +21,7 @@ class SeqStruct(Seq):
     """A read-only Sequence object that extends Bio.Seq
 
     Adds extra function for converting RNA sequence and contextual secondary
-    structure sequence into a RNAContextualSequenceSecondaryStructure sequence
+    structure sequence into a ContextualSequenceSecondaryStructure sequence
     """
     def __init__(self, seq, struct):
         # Convert sequence and struct sequences
@@ -32,7 +32,7 @@ class SeqStruct(Seq):
     @staticmethod
     def convert(seq, struct):
         """Convert a seq and struct SeqRecord to a new SeqRecord with
-        alphabet RNAContextualSequenceSecondaryStructure
+        alphabet ContextualSequenceSecondaryStructure
         """
         if len(seq) != len(struct):
             raise ValueError(('Sequence and structure records have'

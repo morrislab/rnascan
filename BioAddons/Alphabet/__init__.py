@@ -5,13 +5,13 @@
 from Bio.Alphabet import SecondaryStructure
 
 
-class RNAContextualSecondaryStructure(SecondaryStructure):
+class ContextualSecondaryStructure(SecondaryStructure):
     """Extended alphabet for RNA contextual secondary structure"""
 
     letters = "EHTBLRM"
 
 
-class RNAContextualSequenceSecondaryStructure(SecondaryStructure):
+class ContextualSequenceSecondaryStructure(SecondaryStructure):
     """Extended alphabet for RNA contextual secondary structure and
     sequence combined"""
 

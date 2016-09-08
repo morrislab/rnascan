@@ -18,14 +18,15 @@ import argparse
 import ast
 from collections import defaultdict
 import multiprocessing
-from itertools import izip, repeat
-from RNACompete import secondarystructure as ss, matrix
-from RNACompete.SeqStruct import SeqStruct
 import pandas as pd
+from itertools import izip, repeat
+from BioAddons.Alphabet import *
+from BioAddons import SeqStruct
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
+
 #sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 __version__ = 'v0.6.0'
@@ -50,7 +51,7 @@ def getoptions():
     parser.add_argument('-t', '--type', dest='seqtype',
                         choices=['DNA', 'RNA', 'SS', 'RNASS'], default="RNA",
                         help=("Alphabet of PWM (DNA|RNA|SS for "
-                              "RNAContextualSecondaryStructure). "
+                              "ContextualSecondaryStructure). "
                               "[%(default)s]"))
     parser.add_argument('-m', '--minscore', type=float, dest='minscore',
                         default=6,
@@ -95,11 +96,11 @@ def getoptions():
         args.seqtype = 'RNASS'
 
     if args.seqtype == 'SS':
-        args.alphabet = ss.RNAContextualSecondaryStructure()
+        args.alphabet = ContextualSecondaryStructure()
     elif args.seqtype == 'RNA':
         args.alphabet = IUPAC.IUPACUnambiguousRNA()
     elif args.seqtype == 'RNASS':
-        args.alphabet = ss.RNAContextualSequenceSecondaryStructure()
+        args.alphabet = ContextualSequenceSecondaryStructure()
     else:
         args.alphabet = IUPAC.IUPACUnambiguousDNA()
 
@@ -264,7 +265,7 @@ def _scan_all_star(a_b):
 
 def generate_seqstruct(seqi, structi):
     """For RNASS, combined sequence and structure to generate a new
-    SeqRecord with alphabet RNAContextualSequenceSecondaryStructure
+    SeqRecord with alphabet ContextualSequenceSecondaryStructure
     """
     for seqrec, structrec in zip(seqi, structi):
         rna = preprocess_seq(seqrec, IUPAC.IUPACUnambiguousRNA())

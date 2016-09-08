@@ -1,7 +1,7 @@
 import unittest
 import sys
 sys.path.append("..")
-from RNACompete import SeqStruct
+from BioAddons import SeqStruct
 
 
 class SeqStructTestCase(unittest.TestCase):

@@ -4,9 +4,7 @@ import unittest
 import sys
 sys.path.append("..")
 import motif_scan as ms
-from RNACompete import SeqStruct
-from RNACompete.secondarystructure import \
-    RNAContextualSequenceSecondaryStructure as rnass
+from BioAddons.Alphabet import *
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC, SingleLetterAlphabet
@@ -55,7 +53,7 @@ class PreprocessSeqTestCase(unittest.TestCase):
 
     def test_preprocessSeq_6(self):
         '''Test preprocess_seq() on RNA alphabet'''
-        seqrec = SeqRecord(Seq('KHIL', rnass()))
+        seqrec = SeqRecord(Seq('KHIL', ContextualSequenceSecondaryStructure()))
         target = ms.preprocess_seq(seqrec, IUPAC.IUPACUnambiguousRNA())
         expected = 'KHIL'
         self.assertEqual(str(target), expected)
