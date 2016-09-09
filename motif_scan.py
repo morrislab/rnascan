@@ -22,7 +22,8 @@ import multiprocessing
 import pandas as pd
 from itertools import izip, repeat
 from BioAddons.Alphabet import *
-from BioAddons import SeqStruct
+from BioAddons.motifs import matrix
+from BioAddons.SeqStruct import SeqStruct
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -356,9 +357,7 @@ def main():
         print >> sys.stderr, "Scanning sequences ",
 
         results = []
-        fin = fileinput.input(args.fastafile,
-                              openhook=fileinput.hook_compressed)
-        seq_iter = SeqIO.parse(fin, "fasta")
+        seq_iter = parse_sequences(args.fastafiles, args.alphabet)
 
         if args.debug:
             for seqrecord in seq_iter:
@@ -386,7 +385,6 @@ def main():
                     results.append(hits)
             p.close()
 
-        fin.close()
         final = pd.concat(results)
 
     cols = final.columns.tolist()
