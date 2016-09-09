@@ -28,7 +28,6 @@ class SeqStruct(Seq):
         newseq = SeqStruct.convert(seq, struct)
         super(SeqStruct, self).__init__(newseq, RNASS())
 
-
     @staticmethod
     def convert(seq, struct):
         """Convert a seq and struct SeqRecord to a new SeqRecord with
