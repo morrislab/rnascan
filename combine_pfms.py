@@ -7,6 +7,7 @@ m = m_i * m_j where m_i is the number of letters in RNA sequence PFM and m_j is
 the number of letters in secondary struture PFMs.
 """
 from BioAddons.Alphabet import *
+import sys
 import pandas as pd
 import numpy as np
 import argparse
@@ -17,7 +18,7 @@ def getoptions():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('PFMfiles', metavar='PFMs', nargs=2,
                         help="Two PFM files")
-
+    return parser.parse_args()
 
 def load_pfm(pfmfile):
     """Load the PFM
@@ -45,6 +46,8 @@ def combine_pfms(pfm1, pfm2):
 
 
 def main():
+    args = getoptions()
+
     # Load first PFM
     seqpfm = load_pfm(args.PFMfiles[0])
 
