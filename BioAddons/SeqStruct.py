@@ -26,7 +26,7 @@ class SeqStruct(Seq):
     def __init__(self, seq, struct):
         # Convert sequence and struct sequences
         newseq = SeqStruct.convert(seq, struct)
-        super(SeqStruct, self).__init__(newseq, RNASS)
+        super(SeqStruct, self).__init__(newseq, RNASS())
 
 
     @staticmethod
