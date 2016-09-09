@@ -20,6 +20,7 @@ def getoptions():
                         help="Two PFM files")
     return parser.parse_args()
 
+
 def load_pfm(pfmfile):
     """Load the PFM
     """

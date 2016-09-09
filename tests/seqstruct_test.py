@@ -15,7 +15,6 @@ class SeqStructTestCase(unittest.TestCase):
         expected = 'KA'
         self.assertEqual(target, expected)
 
-
     def test_convert_2(self):
         '''Test converting RNA sequence and secondary structure sequence
         to ContextualSequenceSecondaryStructure sequence
@@ -23,7 +22,6 @@ class SeqStructTestCase(unittest.TestCase):
         target = SeqStruct.convert('GCAUG', 'EEEEE')
         expected = 'AVHOA'
         self.assertEqual(target, expected)
-
 
     def test_create_seqstruct_1(self):
         '''Test instantiation of a SeqStruct object

@@ -8,6 +8,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
+
 class ParseSequencesTestCase(unittest.TestCase):
 
     def setUp(self):
