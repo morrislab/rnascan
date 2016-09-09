@@ -271,14 +271,16 @@ def generate_seqstruct(seqi, structi):
     """
     for seqrec, structrec in zip(seqi, structi):
         rna = preprocess_seq(seqrec, IUPAC.IUPACUnambiguousRNA())
-        yield SeqRecord(SeqStruct(rna, structrec.seq))
+        yield SeqRecord(SeqStruct(rna, structrec.seq),
+                        id=seqrec.id, name=seqrec.name,
+                        description=seqrec.description)
 
 
 def parse_sequences(fastas, alphabet):
     """Load FASTA sequence and return SeqRecord iterator
     """
     fin1 = fileinput.input(fastas[0],
-                          openhook=fileinput.hook_compressed)
+                           openhook=fileinput.hook_compressed)
     seqiter = SeqIO.parse(fin1, 'fasta')
 
     if len(fastas) == 2:
