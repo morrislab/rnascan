@@ -49,10 +49,44 @@ class SeqStructTestCase(unittest.TestCase):
     def test_reverse_convert_1(self):
         '''Test reverse convert of a SeqStruct sequence
         '''
-        seqstructobj = SeqStruct('GCAUGAAAAAAAAAAAA', 'BEBEBHLMRTLMTRLMR')
+        seqstructobj = SeqStruct('GCAUGAAAAAACC', 'BEBEBHLMTRLMR')
         target = seqstructobj.reverse_convert()
-        expected = ('GCAUGAAAAAAAAAAAA', 'BEBEBHLMRTLMTRLMR')
+        expected = ('GCAUGAAAAAACC', 'BEBEBHLMTRLMR')
         self.assertEqual(target, expected)
+
+    def test_reverse_convert_2(self):
+        '''Test reverse convert of a SeqStruct sequence and return substring
+        from beginning of sequence
+        '''
+        seqstructobj = SeqStruct('GCAUGAAAAAACC', 'BEBEBHLMTRLMR')
+        target = seqstructobj.reverse_convert(start=0, end=4)
+        expected = ('GCAU', 'BEBE')
+        self.assertEqual(target, expected)
+
+    def test_reverse_convert_3(self):
+        '''Test reverse convert of a SeqStruct sequence and return substring
+        from the end of the sequence
+        '''
+        seqstructobj = SeqStruct('GCAUGAAAAAACC', 'BEBEBHLMTRLMR')
+        target = seqstructobj.reverse_convert(start=10, end=13)
+        expected = ('ACC', 'LMR')
+        self.assertEqual(target, expected)
+
+    def test_reverse_convert_4(self):
+        '''Test reverse convert of a SeqStruct sequence and return substring
+        but with an invalid start position
+        '''
+        seqstructobj = SeqStruct('GCAUGAAAAAACC', 'BEBEBHLMTRLMR')
+        with self.assertRaises(ValueError):
+            target = seqstructobj.reverse_convert(start=13, end=13)
+
+    def test_reverse_convert_5(self):
+        '''Test reverse convert of a SeqStruct sequence and return substring
+        but with an end position greater than start position
+        '''
+        seqstructobj = SeqStruct('GCAUGAAAAAACC', 'BEBEBHLMTRLMR')
+        with self.assertRaises(ValueError):
+            target = seqstructobj.reverse_convert(start=10, end=5)
 
 if __name__ == '__main__':
     print sys.argv[0]

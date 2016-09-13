@@ -43,7 +43,7 @@ class SeqStruct(Seq):
 
         return seqstruct_sequence
 
-    def reverse_convert(self):
+    def reverse_convert(self, start=0, end=None):
         """Convert a ContextualSequenceSecondaryStructure sequence back to
         it's corresponding RNA sequence and ContextualSecondaryStructure
         sequence.
@@ -52,11 +52,19 @@ class SeqStruct(Seq):
         """
         rna = ''
         structure = ''
+
+        # Validate parameters
+        if start >= len(self):
+            raise ValueError('Start position is greater than sequence length')
+        if end is None: end = len(self)
+        if start >= end:
+            raise ValueError('Start position cannot be >= end position')
+
         for letter in self:
             (rna_letter, structure_letter) = RNASS.reverse_convert(letter)
             rna += rna_letter
             structure += structure_letter
-        return (rna, structure)
+        return (rna[start:end], structure[start:end])
 
 
 if __name__ == "__main__":
