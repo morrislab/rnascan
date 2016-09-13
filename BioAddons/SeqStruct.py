@@ -30,18 +30,34 @@ class SeqStruct(Seq):
 
     @staticmethod
     def convert(seq, struct):
-        """Convert a seq and struct SeqRecord to a new SeqRecord with
-        alphabet ContextualSequenceSecondaryStructure
+        """Convert a seq and struct sequence to a a sequence using
+        the ContextualSequenceSecondaryStructure alphabet
         """
         if len(seq) != len(struct):
             raise ValueError(('Sequence and structure records have'
                 ' different lengths'))
 
         seqstruct_sequence = ''
-        for i,j in zip(seq, struct):
+        for i, j in zip(seq, struct):
             seqstruct_sequence += RNASS.convert(i, j)
 
         return seqstruct_sequence
+
+    def reverse_convert(self):
+        """Convert a ContextualSequenceSecondaryStructure sequence back to
+        it's corresponding RNA sequence and ContextualSecondaryStructure
+        sequence.
+
+        Return tuple containing RNA sequence and structure sequence
+        """
+        rna = ''
+        structure = ''
+        for letter in self:
+            (rna_letter, structure_letter) = RNASS.reverse_convert(letter)
+            rna += rna_letter
+            structure += structure_letter
+        return (rna, structure)
+
 
 if __name__ == "__main__":
     s = SeqStruct('AGC', 'BBB')

@@ -58,8 +58,44 @@ class ContextualSequenceSecondaryStructure(SecondaryStructure):
                        'T': 'Q'}
                  }
 
+    back_conversion = {'A': ('G', 'E'),
+                       'B': ('G', 'H'),
+                       'C': ('G', 'T'),
+                       'D': ('G', 'B'),
+                       'E': ('G', 'L'),
+                       'F': ('G', 'R'),
+                       'G': ('G', 'M'),
+                       'H': ('A', 'E'),
+                       'I': ('A', 'H'),
+                       'J': ('A', 'T'),
+                       'K': ('A', 'B'),
+                       'L': ('A', 'L'),
+                       'M': ('A', 'R'),
+                       'N': ('A', 'M'),
+                       'O': ('U', 'E'),
+                       'P': ('U', 'H'),
+                       'Q': ('U', 'T'),
+                       'R': ('U', 'B'),
+                       'S': ('U', 'L'),
+                       'T': ('U', 'R'),
+                       'U': ('U', 'M'),
+                       'V': ('C', 'E'),
+                       'W': ('C', 'H'),
+                       'X': ('C', 'T'),
+                       'Y': ('C', 'B'),
+                       'Z': ('C', 'L'),
+                       '[': ('C', 'R'),
+                       ']': ('C', 'M')}
+
     @classmethod
     def convert(cls, seqletter, structletter):
         """Return SeqStruct letter for given seqletter and structletter
         """
         return cls.conversion[seqletter][structletter]
+
+    @classmethod
+    def reverse_convert(cls, seqstructletter):
+        """Return the RNA letter and ContextualSecondaryStructure
+        letter as a tuple given a seqstructletter
+        """
+        return cls.back_conversion[seqstructletter]

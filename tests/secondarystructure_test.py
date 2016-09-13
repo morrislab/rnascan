@@ -18,8 +18,8 @@ class RNAContextualSequenceSecondaryStructureTestCase(unittest.TestCase):
         '''Test converting RNA letter and structural letter to
         combined letter
         '''
-        target = RNASS.convert('U', 'B')
-        expected = 'R'
+        target = RNASS.convert('C', 'M')
+        expected = ']'
         self.assertEqual(target, expected)
 
     def test_convert_fail_1(self):
@@ -42,6 +42,29 @@ class RNAContextualSequenceSecondaryStructureTestCase(unittest.TestCase):
         '''
         with self.assertRaises(KeyError):
             RNASS.convert('Q', 'Z')
+
+    def test_backconvert_1(self):
+        '''Test back conversion -> given SeqStruct letter, return
+        RNA letter and ContextualSecondaryStructure letter
+        '''
+        target = RNASS.reverse_convert('A')
+        expected = ('G', 'E')
+        self.assertEqual(target, expected)
+
+    def test_backconvert_2(self):
+        '''Test back conversion -> given SeqStruct letter, return
+        RNA letter and ContextualSecondaryStructure letter
+        '''
+        target = RNASS.reverse_convert('[')
+        expected = ('C', 'R')
+        self.assertEqual(target, expected)
+
+    def test_backconvert_fail_1(self):
+        '''Test back conversion -> given unknown letter, return
+        KeyError failure
+        '''
+        with self.assertRaises(KeyError):
+            RNASS.reverse_convert('k')
 
 if __name__ == '__main__':
     print sys.argv[0]
