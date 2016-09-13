@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Copyright 2016 by Kevin Ha
 """
 Calculates motif scores for all PWMs in a given set of sequences in FASTA
 format
@@ -214,13 +215,17 @@ def preprocess_seq(seqrec, alphabet):
     return seq
 
 
-def collect(motif_hits):
+def collect(motif_hits, seqtype):
     """ Finalize results into a DataFrame for output
     """
+    columns=['Motif_ID', 'Start', 'End', 'Sequence', 'LogOdds']
+
+    if seqtype == 'RNASS':
+        columns.append('RNA_Sequence')
+        columns.append('Structure_Sequence')
 
     # Create DataFrame from motif hits
-    hits = pd.DataFrame(motif_hits, columns=['Motif_ID', 'Start', 'End', 'Sequence',
-                                             'LogOdds'])
+    hits = pd.DataFrame(motif_hits, columns=columns)
 
     # Merge metadata with hits
     return hits.sort_values(['Start', 'Motif_ID'])
@@ -239,6 +244,8 @@ def scan(pssm, seq, minscore, motif_id):
                   position + 1, end_position,
                   str(fragment),
                   round(score, 3)]
+        if isinstance(seq, SeqStruct):
+            values.extend(seq.reverse_convert(position, end_position))
         results.append(values)
     return results
 
@@ -257,7 +264,7 @@ def scan_all(seqrecord, *args):
         hits.extend(results)
 
     # Collect results
-    final = collect(hits)
+    final = collect(hits, opts.seqtype)
     return final
 
 
