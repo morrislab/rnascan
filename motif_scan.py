@@ -38,7 +38,7 @@ __version__ = 'v0.6.0'
 def getoptions():
     desc = "Scan sequence for motif binding sites. Results sent to STDOUT."
     parser = argparse.ArgumentParser(description=desc, version=__version__)
-    parser.add_argument('fastafiles', metavar='FASTA', nargs='+',
+    parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
     parser.add_argument('-d', dest="pfm_dir",
                         default=os.path.dirname(os.path.abspath(__file__)) +
