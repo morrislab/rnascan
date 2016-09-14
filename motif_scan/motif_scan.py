@@ -40,9 +40,7 @@ def getoptions():
     parser = argparse.ArgumentParser(description=desc, version=__version__)
     parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
-    parser.add_argument('-d', dest="pfm_dir",
-                        default=os.path.dirname(os.path.abspath(__file__)) +
-                        "/db/pwms",
+    parser.add_argument('-d', dest="pfm_dir", required=True,
                         help="Directory of PFMs [%(default)s]")
     parser.add_argument('-p', '--pseudocount', type=float,
                         dest="pseudocount", default=0,
@@ -90,6 +88,9 @@ def getoptions():
                         help=("Turn on debug mode  "
                               "(aka disable parallelization) [%(default)s]"))
     args = parser.parse_args()
+
+    if not args.pfm_dir:
+        parser.error("Must specify the PFM directory with -d")
 
     if args.uniform_background is True and args.custom_background is not None:
         parser.error("You cannot set uniform and custom background options "
