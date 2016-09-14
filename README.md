@@ -29,11 +29,13 @@ Download the latest source code and install using provided `setup.py` script:
 
 ```
 git clone git@github.com:kcha/motif_scan.git
-
 cd motif_scan
-
 python setup.py install
-# or python setup.py install --user
+```
+
+Or for user-specific installation:
+```
+python setup.py install --user
 ```
 
 # Usage
