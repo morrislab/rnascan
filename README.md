@@ -10,14 +10,13 @@ This program has been developed for scanning motifs under three modes:
 
 # Prerequisites
 
-## Python libraries
+## Python packages
 This program was written for Python 2.7 and uses the following Python libraries
-(which needs to be installed if you haven't already):
  - [`pandas`](http://pandas.pydata.org) (v0.17 or higher): for handling the results using DataFrames
  - [`numpy`](http://www.numpy.org/) (v1.10 or higher): for numerical computations
  - [`biopython`](http://biopython.org) (v1.66 or higher): for parsing FASTA, PWMs, and performing motif scanning
 
-Alternatively, both of the above pacakges can be installed via the
+Alternatively, all of the above pacakges can be installed via the
 [Anaconda](https://www.continuum.io/why-anaconda) distribution.
 
 # Installation
