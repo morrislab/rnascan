@@ -14,7 +14,7 @@ This program has been developed for scanning motifs under three modes:
 This program was written for Python 2.7 and uses the following Python libraries
  - [`pandas`](http://pandas.pydata.org) (v0.17 or higher): for handling the results using DataFrames
  - [`numpy`](http://www.numpy.org/) (v1.10 or higher): for numerical computations
- - [`biopython`](http://biopython.org) (v1.66 or higher): for parsing FASTA, PWMs, and performing motif scanning
+ - [`biopython`](http://biopython.org) (v1.66 or higher): for parsing FASTA, PFMs, and performing motif scanning
 
 Alternatively, all of the above pacakges can be installed via the
 [Anaconda](https://www.continuum.io/why-anaconda) distribution.
@@ -48,18 +48,18 @@ motif_scan -h
 A minimal usage command for scanning RNA (default) motifs:
 
 ```
-motif_scan -d pwm_dir sequences.fasta > hits.tab
+motif_scan -d pfm_dir sequences.fasta > hits.tab
 ```
 
 Parallelization is implemented via Python's [`multiprocessing`](https://docs.python.org/2/library/multiprocessing.html) module:
 ```
-motif_scan -c 8 -d pwm_dir sequences.fasta > hits.tab
+motif_scan -c 8 -d pfm_dir sequences.fasta > hits.tab
 ```
 
 To run a test sequence:
 
 ```
-motif_scan -d pwm_dir -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
+motif_scan -d pfm_dir -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
 ```
 
 For scanning DNA and secondary structure motifs, use the option `-t` to change
@@ -72,7 +72,7 @@ be computed from the given RNA PFM and secondary structure PFM. This can
 be done using the command `combine_pfms`:
 
 ```
-combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pwm_dir/pfm.txt
+combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pfm_dir/pfm.txt
 ```
 
 Next, supply two FASTA sequences when calling `motif_scan`:
@@ -81,7 +81,7 @@ Next, supply two FASTA sequences when calling `motif_scan`:
     2. Contextual secondary structure sequences
 
 ```
-motif_scan -d combined_pwm_dir rna_sequences.fa secondary_structure_sequences.fa
+motif_scan -d combined_pfm_dir rna_sequences.fa secondary_structure_sequences.fa
 ```
 
 # References
