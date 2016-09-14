@@ -1,13 +1,13 @@
 # motif_scan.py
 
 A Python script for scanning RNA-binding protein (RBP) motifs in a given set of
-sequences. 
+sequences.
 
 This program has been developed for scanning motifs under three modes:
 
-    1. DNA/RNA motifs
-    2. Contextual secondary structure motifs
-    3. RNA motifs *and* secondary structure (RNA+structure)
+1. DNA/RNA motifs
+1. Contextual secondary structure motifs
+1. RNA motifs *and* secondary structure (RNA+structure)
 
 # Prerequisites
 
@@ -25,16 +25,15 @@ Alternatively, all of the above pacakges can be installed via the
 
 Download the latest source code and install using provided `setup.py` script:
 
-```
-git clone git@github.com:kcha/motif_scan.git
-cd motif_scan
-python setup.py install
-```
+  git clone git@github.com:kcha/motif_scan.git
+  cd motif_scan
+  python setup.py install
+
 
 Or for user-specific installation:
-```
-python setup.py install --user
-```
+
+  python setup.py install --user
+
 
 # Usage
 
@@ -42,27 +41,20 @@ python setup.py install --user
 
 For full documentation of options, please refer to the help message:
 
-```
-motif_scan -h
-```
+  motif_scan -h
 
 ### Quick Usage
 A minimal usage command for scanning RNA (default) motifs:
 
-```
-motif_scan -d pfm_dir sequences.fasta > hits.tab
-```
+  motif_scan -d pfm_dir sequences.fasta > hits.tab
 
 Parallelization is implemented via Python's [`multiprocessing`](https://docs.python.org/2/library/multiprocessing.html) module:
-```
-motif_scan -c 8 -d pfm_dir sequences.fasta > hits.tab
-```
+
+  motif_scan -c 8 -d pfm_dir sequences.fasta > hits.tab
 
 To run a test sequence:
 
-```
-motif_scan -d pfm_dir -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
-```
+  motif_scan -d pfm_dir -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
 
 For scanning DNA and secondary structure motifs, use the option `-t` to change
 the mode to `DNA` or `SS`, respectively. For RNA+structure, see below.
@@ -73,18 +65,14 @@ For RNA+structure motif scanning, a new PFM must
 be computed from the given RNA PFM and secondary structure PFM. This can
 be done using the command `combine_pfms`:
 
-```
-combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pfm_dir/pfm.txt
-```
+  combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pfm_dir/pfm.txt
 
 Next, supply two FASTA sequences when calling `motif_scan`:
 
-    1. RNA sequences
-    2. Contextual secondary structure sequences
+1. RNA sequences
+1. Contextual secondary structure sequences
 
-```
-motif_scan -d combined_pfm_dir rna_sequences.fa secondary_structure_sequences.fa
-```
+  motif_scan -d combined_pfm_dir rna_sequences.fa secondary_structure_sequences.fa
 
 # References
 
