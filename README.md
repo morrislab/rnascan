@@ -1,8 +1,7 @@
 # motif_scan.py
 
 A Python script for scanning RNA-binding protein (RBP) motifs in a given set of
-sequences. The PWMs are downloaded from the CISBP website:
-http://cisbp-rna.ccbr.utoronto.ca/.
+sequences. 
 
 This program has been developed for scanning motifs under three modes:
     1. DNA/RNA motifs
