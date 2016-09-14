@@ -1,7 +1,7 @@
 import unittest
 import sys
 sys.path.append("..")
-import combine_pfms as cp
+import motif_scan.combine_pfms as cp
 import pandas as pd
 
 

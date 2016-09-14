@@ -1,7 +1,8 @@
 import unittest
 import sys
 sys.path.append("..")
-from BioAddons.Alphabet import ContextualSequenceSecondaryStructure as RNASS
+from motif_scan.BioAddons.Alphabet import \
+    ContextualSequenceSecondaryStructure as RNASS
 
 
 class RNAContextualSequenceSecondaryStructureTestCase(unittest.TestCase):

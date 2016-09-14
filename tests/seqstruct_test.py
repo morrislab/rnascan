@@ -1,8 +1,8 @@
 import unittest
 import sys
 sys.path.append("..")
-from BioAddons.SeqStruct import SeqStruct
-from BioAddons.Alphabet import *
+from motif_scan.BioAddons.SeqStruct import SeqStruct
+from motif_scan.BioAddons.Alphabet import *
 
 
 class SeqStructTestCase(unittest.TestCase):

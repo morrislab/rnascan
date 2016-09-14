@@ -1,8 +1,8 @@
 import unittest
 import sys
 sys.path.append("..")
-import motif_scan as ms
-from BioAddons.Alphabet import *
+import motif_scan.motif_scan as ms
+from motif_scan.BioAddons.Alphabet import *
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC, SingleLetterAlphabet
