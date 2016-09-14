@@ -1,13 +1,13 @@
 # motif_scan.py
 
 A Python script for scanning RNA-binding protein (RBP) motifs in a given set of
-sequences. 
+sequences.
 
 This program has been developed for scanning motifs under three modes:
 
-    1. DNA/RNA motifs
-    2. Contextual secondary structure motifs
-    3. RNA motifs *and* secondary structure (RNA+structure)
+1. DNA/RNA motifs
+1. Contextual secondary structure motifs
+1. RNA motifs *and* secondary structure (RNA+structure)
 
 # Prerequisites
 
@@ -79,8 +79,8 @@ combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pfm_dir/pfm.txt
 
 Next, supply two FASTA sequences when calling `motif_scan`:
 
-    1. RNA sequences
-    2. Contextual secondary structure sequences
+1. RNA sequences
+1. Contextual secondary structure sequences
 
 ```
 motif_scan -d combined_pfm_dir rna_sequences.fa secondary_structure_sequences.fa
