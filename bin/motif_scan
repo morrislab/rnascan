@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+from motif_scan import motif_scan
+motif_scan.main()
