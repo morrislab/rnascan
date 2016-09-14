@@ -4,6 +4,7 @@ A Python script for scanning RNA-binding protein (RBP) motifs in a given set of
 sequences. 
 
 This program has been developed for scanning motifs under three modes:
+
     1. DNA/RNA motifs
     2. Contextual secondary structure motifs
     3. RNA motifs *and* secondary structure (RNA+structure)
@@ -12,6 +13,7 @@ This program has been developed for scanning motifs under three modes:
 
 ## Python packages
 This program was written for Python 2.7 and uses the following Python libraries
+
  - [`pandas`](http://pandas.pydata.org) (v0.17 or higher): for handling the results using DataFrames
  - [`numpy`](http://www.numpy.org/) (v1.10 or higher): for numerical computations
  - [`biopython`](http://biopython.org) (v1.66 or higher): for parsing FASTA, PFMs, and performing motif scanning
