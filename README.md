@@ -4,24 +4,22 @@ A Python script for scanning RNA-binding protein (RBP) motifs in a given set of
 sequences. The PWMs are downloaded from the CISBP website:
 http://cisbp-rna.ccbr.utoronto.ca/.
 
-This program has been develop for scanning RNA motifs *and* secondary structure motifs. This is done by combining RNA and secondary struture PFMs to
-generate a combined scoring for a given sequence.
+This program has been developed for scanning motifs under three modes:
+    1. DNA/RNA motifs
+    2. Contextual secondary structure motifs
+    3. RNA motifs *and* secondary structure (RNA+structure)
 
 # Prerequisites
 
 ## Python libraries
 This program was written for Python 2.7 and uses the following Python libraries
 (which needs to be installed if you haven't already):
- - [`pandas`](http://pandas.pydata.org) (v0.17.1 or higher): for handling the results using DataFrames
+ - [`pandas`](http://pandas.pydata.org) (v0.17 or higher): for handling the results using DataFrames
+ - [`numpy`](http://www.numpy.org/) (v1.10 or higher): for numerical computations
  - [`biopython`](http://biopython.org) (v1.66 or higher): for parsing FASTA, PWMs, and performing motif scanning
 
 Alternatively, both of the above pacakges can be installed via the
 [Anaconda](https://www.continuum.io/why-anaconda) distribution.
-
-## PWMs
-
-CISBP PWMs and RBP Info files can be downloaded from
-http://cisbp-rna.ccbr.utoronto.ca/bulk.php.
 
 # Installation
 
@@ -40,13 +38,16 @@ python setup.py install --user
 
 # Usage
 
+## Motif Scanning
+
 For full documentation of options, please refer to the help message:
 
 ```
 motif_scan -h
 ```
 
-A minimal usage command:
+### Quick Usage
+A minimal usage command for scanning RNA (default) motifs:
 
 ```
 motif_scan -d pwm_dir sequences.fasta > hits.tab
@@ -54,13 +55,35 @@ motif_scan -d pwm_dir sequences.fasta > hits.tab
 
 Parallelization is implemented via Python's [`multiprocessing`](https://docs.python.org/2/library/multiprocessing.html) module:
 ```
-motif_scan -c 8 -d pwm_df sequences.fasta > hits.tab
+motif_scan -c 8 -d pwm_dir sequences.fasta > hits.tab
 ```
 
 To run a test sequence:
 
 ```
 motif_scan -d pwm_dir -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
+```
+
+For scanning DNA and secondary structure motifs, use the option `-t` to change
+the mode to `DNA` or `SS`, respectively. For RNA+structure, see below.
+
+### Scanning RNA+structure PFMs
+
+For RNA+structure motif scanning, a new PFM must
+be computed from the given RNA PFM and secondary structure PFM. This can
+be done using the command `combine_pfms`:
+
+```
+combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pwm_dir/pfm.txt
+```
+
+Next, supply two FASTA sequences when calling `motif_scan`:
+
+    1. RNA sequences
+    2. Contextual secondary structure sequences
+
+```
+motif_scan -d combined_pwm_dir rna_sequences.fa secondary_structure_sequences.fa
 ```
 
 # References
