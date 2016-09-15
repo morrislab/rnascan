@@ -9,6 +9,6 @@ setup(name='motif_scan',
       license='MIT',
       packages=['motif_scan'],
       scripts=['bin/motif_scan', 'bin/combine_pfms'],
-      install_requires=['pandas', 'numpy', 'biopython>=1.66'],
+      #install_requires=['pandas', 'numpy', 'biopython>=1.66'],
       zip_safe=False
       )
