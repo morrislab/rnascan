@@ -30,9 +30,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 
-#sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-__version__ = 'v0.6.0'
+__version__ = 'v0.7.0'
 
 
 def getoptions():
