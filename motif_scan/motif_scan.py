@@ -38,7 +38,7 @@ def getoptions():
     parser = argparse.ArgumentParser(description=desc, version=__version__)
     parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
-    parser.add_argument('-d', dest="pfm_dir", required=True,
+    parser.add_argument('-d', '--pfm_dir', dest="pfm_dir", required=True,
                         help="Directory of PFMs [%(default)s]")
     parser.add_argument('-p', '--pseudocount', type=float,
                         dest="pseudocount", default=0,
@@ -87,7 +87,7 @@ def getoptions():
                               "(aka disable parallelization) [%(default)s]"))
     args = parser.parse_args()
 
-    if not args.pfm_dir:
+    if not (args.pfm_dir or args.bgonly):
         parser.error("Must specify the PFM directory with -d")
 
     if args.uniform_background is True and args.custom_background is not None:
@@ -400,7 +400,11 @@ def main():
     final[cols].to_csv(sys.stdout, sep="\t", index=False)
     toc = time.time()
 
-    print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
+    runtime = float(toc - tic)
+    if runtime > 60:
+        print >> sys.stderr, "done in %0.4f minutes!" % (runtime / 60)
+    else:
+        print >> sys.stderr, "done in %0.4f seconds!" % (runtime)
     print >> sys.stderr, "Processed %d sequences" % count
 
 if __name__ == '__main__':
