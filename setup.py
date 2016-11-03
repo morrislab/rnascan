@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='motif_scan',
       version='0.7.0',
@@ -7,7 +7,7 @@ setup(name='motif_scan',
       author='Kevin Ha',
       author_email='k.ha@mail.utoronto.ca',
       license='MIT',
-      packages=['motif_scan'],
+      packages=find_packages(),
       scripts=['bin/motif_scan', 'bin/combine_pfms'],
       install_requires=['setuptools',
                         'pandas >= 0.17',
