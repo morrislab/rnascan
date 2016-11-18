@@ -30,7 +30,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 
-__version__ = 'v0.7.0'
+__version__ = 'v0.7.1'
 
 
 def getoptions():
@@ -362,7 +362,7 @@ def main():
         final['Description'] = ''
         count += 1
     else:
-        print >> sys.stderr, "Scanning sequences ",
+        print >> sys.stderr, "Scanning sequences "
 
         results = []
         seq_iter = parse_sequences(args.fastafiles, args.alphabet)
@@ -393,7 +393,8 @@ def main():
                     results.append(hits)
             p.close()
 
-        final = pd.concat(results)
+        if len(results) != 0:
+            final = pd.concat(results)
 
     cols = final.columns.tolist()
     cols = cols[-2:] + cols[:-2]
@@ -402,9 +403,9 @@ def main():
 
     runtime = float(toc - tic)
     if runtime > 60:
-        print >> sys.stderr, "done in %0.4f minutes!" % (runtime / 60)
+        print >> sys.stderr, "Done in %0.4f minutes!" % (runtime / 60)
     else:
-        print >> sys.stderr, "done in %0.4f seconds!" % (runtime)
+        print >> sys.stderr, "Done in %0.4f seconds!" % (runtime)
     print >> sys.stderr, "Processed %d sequences" % count
 
 if __name__ == '__main__':
