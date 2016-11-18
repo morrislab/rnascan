@@ -12,53 +12,55 @@ with whatever letters are in the Alphabet of the matrix. This seems to be
 sufficient enough for our purposes.
 """
 from Bio.motifs import matrix
-
-# Hack for Python 2.5, isnan and isinf were new in Python 2.6
-try:
-    from math import isnan as _isnan
-except ImportError:
-    def _isnan(value):
-        # This is tricky due to cross platform float differences
-        if str(value).lower() == "nan":
-            return True
-        return value != value
-try:
-    from math import isinf as _isinf
-except ImportError:
-    def _isinf(value):
-        # This is tricky due to cross platform float differences
-        if str(value).lower().endswith("inf"):
-            return True
-        return False
-# Hack for Python 2.5 on Windows:
-try:
-    _nan = float("nan")
-except ValueError:
-    _nan = 1e1000 / 1e1000
-
+from Bio.Alphabet import NucleotideAlphabet
+import platform
 
 class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix):
 
-    def calculate(self, sequence):
-        """Add support for other alphabets other than DNA sequence
-
-        Returns the PWM score for a given sequence for all positions.
-
-        Notes:
-
-         - the sequence can only be a DNA sequence // not anymore!
-         - the search is performed only on one strand
-         - if the sequence and the motif have the same length, a single
-           number is returned
-         - otherwise, the result is a one-dimensional list or numpy array
+    def _py_calculate(self, sequence, m, n):
+        """Handles the default calcuate() method in Python.
+        Moved from _calculate in the except clause below.
         """
-        # TODO - Code itself tolerates ambiguous bases (as NaN).
-        #if not isinstance(self.alphabet, IUPAC.IUPACUnambiguousDNA):
-            #raise ValueError("PSSM has wrong alphabet: %s - Use only with DNA motifs"
-                                 #% self.alphabet)
-        #if not isinstance(sequence.alphabet, IUPAC.IUPACUnambiguousDNA):
-            #raise ValueError("Sequence has wrong alphabet: %r - Use only with DNA sequences"
-                                 #% sequence.alphabet)
+
+        # The C code handles mixed case so Python version must too:
+        sequence = sequence.upper()
+        scores = []
+        for i in range(n - m + 1):
+            score = 0.0
+            for position in range(m):
+                letter = sequence[i + position]
+                try:
+                    score += self[letter][position]
+                except KeyError:
+                    score = float("nan")
+                    break
+            scores.append(score)
+        return scores
+
+    # Make sure that we use C-accelerated PWM calculations if running under CPython.
+    # Fall back to the slower Python implementation if Jython or IronPython.
+    try:
+        from . import _pwm
+        def _calculate(self, sequence, m, n):
+
+            # Only RNA and DNA is supported right now. If sequence is
+            # secondary structure, then use Python implementation.
+            if not isinstance(self.alphabet, NucleotideAlphabet):
+                return self._py_calculate(sequence, m, n)
+
+            letters = ''.join(sorted(self.alphabet.letters))
+            logodds = [[self[letter][i] for letter in letters]
+                            for i in range(m)]
+            return self._pwm.calculate(sequence, logodds)
+    except ImportError:
+        if platform.python_implementation() == 'CPython':
+            raise
+        else:
+            def _calculate(self, sequence, m, n):
+                return self._py_calculate(sequence, m, n)
+
+
+    def calculate(self, sequence):
 
         # TODO - Force uppercase here and optimise switch statement in C
         # by assuming upper case?
@@ -66,30 +68,8 @@ class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix
         m = self.length
         n = len(sequence)
 
-        scores = []
-        # check if the fast C code can be used
-        try:
-            import _pwm
-        except ImportError:
-            # use the slower Python code otherwise
-            # The C code handles mixed case so Python version must too:
-            sequence = sequence.upper()
-            for i in range(n - m + 1):
-                score = 0.0
-                for position in range(m):
-                    letter = sequence[i + position]
-                    try:
-                        score += self[letter][position]
-                    except KeyError:
-                        score = _nan
-                        break
-                scores.append(score)
-        else:
-            # get the log-odds matrix into a proper shape
-            # (each row contains sorted (ACGT) log-odds values)
-            logodds = [[self[letter][i] for letter in
-                        self.alphabet().letters] for i in range(m)]
-            scores = _pwm.calculate(sequence, logodds)
+        scores = self._calculate(sequence, m, n)
+
         if len(scores) == 1:
             return scores[0]
         else:
