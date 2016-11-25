@@ -15,6 +15,7 @@ import time
 import glob
 import fileinput
 import os
+import os.path
 import warnings
 import argparse
 import ast
@@ -30,7 +31,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 
-__version__ = 'v0.7.1'
+__version__ = 'v0.7.2'
 
 
 def getoptions():
@@ -39,7 +40,7 @@ def getoptions():
     parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
     parser.add_argument('-d', '--pfm_dir', dest="pfm_dir",
-                        help="Directory of PFMs [%(default)s]")
+                        help="Directory of PFMs or a single file [%(default)s]")
     parser.add_argument('-p', '--pseudocount', type=float,
                         dest="pseudocount", default=0,
                         help="Pseudocount for normalizing PFM. [%(default)s]")
@@ -146,7 +147,12 @@ def load_motifs(dbdir, *args):
     motifs_set = {}
     print >> sys.stderr, "Loading motifs ",
     tic = time.time()
-    for mfile in glob.glob(dbdir + "/*.txt"):
+    if os.path.isfile(dbdir):
+        mfiles = [dbdir]
+    else:
+        mfiles = glob.glob(dbdir + "/*.txt")
+
+    for mfile in mfiles:
         try:
             motif_id = os.path.splitext(os.path.basename(mfile))[0]
             motifs_set[motif_id] = pfm2pssm(mfile, *args)

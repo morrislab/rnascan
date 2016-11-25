@@ -39,7 +39,7 @@ if is_Numpy_installed():
 ))
 
 setup(name='motif_scan',
-      version='0.7.1',
+      version='0.7.2',
       description='Scan RBP motifs and secondary structure from PFMs',
       url='http://github.com/kcha/motif_scan',
       author='Kevin Ha',
