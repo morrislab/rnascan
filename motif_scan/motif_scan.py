@@ -342,7 +342,8 @@ def main():
         bg = None
     else:
         if args.custom_background is not None:
-            print >> sys.stderr, ("Reading custom background probabilities "                  "from %s" % args.custom_background)
+            print >> sys.stderr, ("Reading custom background probabilities "                  
+                                  "from %s" % args.custom_background)
             # load custom background
             # http://stackoverflow.com/a/11027069
             with open(args.custom_background, 'r') as fin:
