@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2016 by Kevin Ha
+# Copyright 2016-2017 by Kevin Ha
 """
-Calculates motif scores for all PWMs in a given set of sequences in FASTA
+Calculates motif scores for all PFMs in a given set of sequences in FASTA
 format
 
 Requires python 2.7+
@@ -12,7 +12,6 @@ http://cisbp-rna.ccbr.utoronto.ca/TFTools.php
 
 import sys
 import time
-import glob
 import fileinput
 import os
 import os.path
@@ -23,15 +22,14 @@ from collections import defaultdict
 import multiprocessing
 import pandas as pd
 from itertools import izip, repeat
-from BioAddons.Alphabet import *
+from BioAddons.Alphabet import ContextualSecondaryStructure
 from BioAddons.motifs import matrix
-from BioAddons.SeqStruct import SeqStruct
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 
-__version__ = 'v0.7.2'
+__version__ = 'v0.8.0'
 
 
 def getoptions():
@@ -39,39 +37,33 @@ def getoptions():
     parser = argparse.ArgumentParser(description=desc, version=__version__)
     parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
-    parser.add_argument('-d', '--pfm_dir', dest="pfm_dir",
-                        help="Directory of PFMs or a single file [%(default)s]")
-    parser.add_argument('-p', '--pseudocount', type=float,
+    pfm_grp = parser.add_argument_group("PFM options")
+    pfm_grp.add_argument('-p', '--pfm_seq', dest="pfm_seq", type=str,
+                        help="Sequence PFM")
+    pfm_grp.add_argument('-q', '--pfm_struct', dest="pfm_struct", type=str,
+                        help="Structure PFM")
+
+    parser.add_argument('-C', '--pseudocount', type=float,
                         dest="pseudocount", default=0,
                         help="Pseudocount for normalizing PFM. [%(default)s]")
-    #parser.add_argument('-r', '--rbpinfo', type='string', dest='rbpinfo',
-        #default=os.path.dirname(os.path.abspath(__file__)) +
-        #"/db/RBP_Information_all_motifs.txt",
-        #help="RBP info for adding meta data to results. [%(default)s]")
-    parser.add_argument('-t', '--type', dest='seqtype',
-                        choices=['DNA', 'RNA', 'SS', 'RNASS'], default="RNA",
-                        help=("Alphabet of PFM (DNA|RNA|SS for "
-                              "ContextualSecondaryStructure). "
-                              "[%(default)s]"))
     parser.add_argument('-m', '--minscore', type=float, dest='minscore',
                         default=6,
                         help="Minimum score for motif hits. [%(default)s]")
-    parser.add_argument('-s', '--seq', dest='testseq', default=None,
+    parser.add_argument('-t', '--testseq', dest='testseq', default=None,
                         help=("Supply a test sequence to scan. FASTA files "
-                              " will be ignored."))
+                              "will be ignored. Can supply sequence and "
+                              "structure as single string separated by comma."))
     parser.add_argument('-c', '--cores', type=int, default=8, dest="cores",
                         help="Number of processing cores [%(default)s]")
-    #parser.add_argument('-x', '--excel', action="store_true", dest="excel",
-            #default=False,
-            #help="Format the RBP_ID column with =HYPERLINK(url) for " +
-            #"import into Excel [%(default)s]")
-    parser.add_argument('-u', '--uniformbg', action="store_true",
+
+    bg_grp = parser.add_argument_group('Background frequency options')
+    bg_grp.add_argument('-u', '--uniformbg', action="store_true",
                         default=False, dest="uniform_background",
                         help=("Use uniform background for calculating "
                               "log-odds [%(default)s]. Default is to compute "
                               "background from input sequences. This option "
                               "is mutually exclusive with -B."))
-    parser.add_argument('-B', '--bgonly', action="store_true", default=False,
+    bg_grp.add_argument('-g', '--bgonly', action="store_true", default=False,
                         dest="bgonly",
                         help=("Compute background probabilities from input "
                               "sequences (STDOUT) and exit. Useful for "
@@ -79,33 +71,42 @@ def getoptions():
                               "superset of sequences. Then, these values can "
                               "be subsequently supplied using -b. "
                               "[%(default)s]"))
-    parser.add_argument('-b', '--bg', default=None, dest="custom_background",
+    bg_grp.add_argument('-b', '--bg_seq', default=None, dest="bg_seq",
                         help=("Load file of pre-computed background "
-                              "probabilities"))
+                              "probabilities for nucleotide sequences"))
+    bg_grp.add_argument('-B', '--bg_struct', default=None, dest="bg_struct",
+                        help=("Load file of pre-computed background "
+                          "probabilities for nucleotide sequences"))
     parser.add_argument('-x', '--debug', action="store_true", default=False,
                         dest="debug",
                         help=("Turn on debug mode  "
                               "(aka disable parallelization) [%(default)s]"))
     args = parser.parse_args()
 
-    if not (args.pfm_dir or args.bgonly):
-        parser.error("Must specify the PFM directory with -d")
+    if not (args.pfm_seq or args.pfm_struct or args.bgonly):
+        parser.error("Must specify PFMs with -p and/or -q")
 
-    if args.uniform_background is True and args.custom_background is not None:
+    if args.uniform_background and (args.bg_seq or args.bg_struct):
         parser.error("You cannot set uniform and custom background options "
                      "at the same time\n")
 
-    if len(args.fastafiles) == 2:
-        args.seqtype = 'RNASS'
+    nfiles = len(args.fastafiles)
 
-    if args.seqtype == 'SS':
-        args.alphabet = ContextualSecondaryStructure()
-    elif args.seqtype == 'RNA':
-        args.alphabet = IUPAC.IUPACUnambiguousRNA()
-    elif args.seqtype == 'RNASS':
-        args.alphabet = ContextualSequenceSecondaryStructure()
-    else:
-        args.alphabet = IUPAC.IUPACUnambiguousDNA()
+    if nfiles == 2:
+        if not (args.pfm_seq or args.pfm_struct):
+            parser.error("Missing PFMs")
+        args.seq_type == "RNASS"
+    else:   # nfiles == 1
+        if args.pfm_seq and args.pfm_struct and not args.testseq:
+            parser.error("Can't specify two PFMs with one input file")
+        elif args.pfm_seq and args.pfm_struct and args.testseq:
+            args.seq_type = "RNASS"
+        elif args.pfm_seq:
+            args.seq_type = "RNA"
+        elif args.pfm_struct:
+            args.seq_type = "SS"
+        else:
+            parser.error("Must specify PFMs with -p and/or -q")
 
     return args
 
@@ -140,33 +141,26 @@ def batch_iterator(iterator, batch_size):
             yield batch
 
 
-def load_motifs(dbdir, *args):
-    """
-    Load all motifs from given directory. Will look for *.txt files
+def load_motif(pfm_file, *args):
+    """ Load PFM
     """
     motifs_set = {}
-    print >> sys.stderr, "Loading motifs ",
+    print >> sys.stderr, "Loading PFM %s" % pfm_file,
     tic = time.time()
-    if os.path.isfile(dbdir):
-        mfiles = [dbdir]
-    else:
-        mfiles = glob.glob(dbdir + "/*.txt")
-
-    for mfile in mfiles:
-        try:
-            motif_id = os.path.splitext(os.path.basename(mfile))[0]
-            motifs_set[motif_id] = pfm2pssm(mfile, *args)
-        except ValueError:
-            print >> sys.stderr, "\nFailed to load motif %s" % mfile
-        except KeyError:
-            print >> sys.stderr, "\nFailed to load motif %s" % mfile
-            print >> sys.stderr, "Check that you are using the correct --type"
-            raise
-        except:
-            print "Unexpected error:", sys.exc_info()[0]
-            raise
-        print >> sys.stderr, "\b.",
-        sys.stderr.flush()
+    try:
+        motif_id = os.path.splitext(os.path.basename(pfm_file))[0]
+        motifs_set[motif_id] = pfm2pssm(pfm_file, *args)
+    except ValueError:
+        print >> sys.stderr, "\nFailed to load motif %s" % pfm_file
+    except KeyError:
+        print >> sys.stderr, "\nFailed to load motif %s" % pfm_file
+        print >> sys.stderr, "Check that you are using the correct --type"
+        raise
+    except:
+        print "Unexpected error:", sys.exc_info()[0]
+        raise
+    print >> sys.stderr, "\b.",
+    sys.stderr.flush()
     toc = time.time()
     print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
     print >> sys.stderr, "Found %d motifs" % len(motifs_set)
@@ -182,7 +176,7 @@ def pfm2pssm(pfm_file, pseudocount, alphabet, background=None):
     pfm = motifs.Motif(alphabet=alphabet, counts=pfm)
     pfm = pfm.counts.normalize(pseudocount)
 
-    # Can optionally add background, but for now assuming uniform probability
+
     pssm = pfm.log_odds(background=background)
 
     pssm = matrix.ExtendedPositionSpecificScoringMatrix(pssm.alphabet, pssm)
@@ -220,14 +214,10 @@ def preprocess_seq(seqrec, alphabet):
     return seq
 
 
-def collect(motif_hits, seqtype):
+def collect(motif_hits):
     """ Finalize results into a DataFrame for output
     """
     columns=['Motif_ID', 'Start', 'End', 'Sequence', 'LogOdds']
-
-    if seqtype == 'RNASS':
-        columns.append('RNA_Sequence')
-        columns.append('Structure_Sequence')
 
     # Create DataFrame from motif hits
     hits = pd.DataFrame(motif_hits, columns=columns)
@@ -236,10 +226,11 @@ def collect(motif_hits, seqtype):
     return hits.sort_values(['Start', 'Motif_ID'])
 
 
-def scan(pssm, seq, minscore, motif_id):
+def scan(pssm, seq, alphabet, minscore):
     results = []
-    for position, score in pssm.search(seq, threshold=minscore, both=False):
-        end_position = position + len(pssm.consensus)
+    (motif_id, pm) = pssm.items()[0]
+    for position, score in pm.search(seq, threshold=minscore, both=False):
+        end_position = position + len(pm.consensus)
 
         fragment = seq[position:end_position]
         #if isinstance(seq.alphabet, IUPAC.IUPACUnambiguousRNA):
@@ -249,68 +240,40 @@ def scan(pssm, seq, minscore, motif_id):
                   position + 1, end_position,
                   str(fragment),
                   round(score, 3)]
-        if isinstance(seq, SeqStruct):
-            values.extend(seq.reverse_convert(position, end_position))
         results.append(values)
     return results
 
 
-def scan_all(seqrecord, *args):
+def scan_all(seqrecord, pssm, alphabet, *args):
+    """ Scan seq for all motifs in pssms
     """
-    Scan seq for all motifs in pssms
-    """
-    pssms = args[0]
-    opts = args[1]
-    hits = []
 
-    seq = preprocess_seq(seqrecord, opts.alphabet)
-    for motif_id, pssm in pssms.iteritems():
-        results = scan(pssm, seq, opts.minscore, motif_id)
-        hits.extend(results)
+    seq = preprocess_seq(seqrecord, alphabet)
+    results = scan(pssm, seq, alphabet, *args)
 
-    # Collect results
-    final = collect(hits, opts.seqtype)
-    return final
+    columns=['Motif_ID', 'Start', 'End', 'Sequence', 'LogOdds']
+    final = pd.DataFrame(results, columns=columns)
+    return final.sort_values(['Start', 'Motif_ID'])
 
 
 def _scan_all_star(a_b):
     return scan_all(*a_b)
 
 
-def generate_seqstruct(seqi, structi):
-    """For RNASS, combined sequence and structure to generate a new
-    SeqRecord with alphabet ContextualSequenceSecondaryStructure
-    """
-    for seqrec, structrec in zip(seqi, structi):
-        rna = preprocess_seq(seqrec, IUPAC.IUPACUnambiguousRNA())
-        yield SeqRecord(SeqStruct(rna, structrec.seq),
-                        id=seqrec.id, name=seqrec.name,
-                        description=seqrec.description)
-
-
-def parse_sequences(fastas, alphabet):
+def parse_sequences(fasta_file):
     """Load FASTA sequence and return SeqRecord iterator
     """
-    fin1 = fileinput.input(fastas[0],
-                           openhook=fileinput.hook_compressed)
-    seqiter = SeqIO.parse(fin1, 'fasta')
-
-    if len(fastas) == 2:
-        fin2 = fileinput.input(fastas[1],
-                               openhook=fileinput.hook_compressed)
-        structiter = SeqIO.parse(fin2, 'fasta')
-        seqiter = generate_seqstruct(seqiter, structiter)
-
-    return seqiter
+    fin = fileinput.input(fasta_file, openhook=fileinput.hook_compressed)
+    return SeqIO.parse(fin, 'fasta')
 
 
 def compute_background(fastas, alphabet, verbose=True):
-    """Compute background probabiilities from all input sequences
+    """ Compute background probabiilities from all input sequences
     """
     print >> sys.stderr, "Calculating background probabilities..."
     content = defaultdict(int)
     total = len(alphabet.letters)       # add psuedocount for each letter
-    seqiter = parse_sequences(fastas, alphabet)
+    seqiter = parse_sequences(fastas)
 
     for seqrecord in seqiter:
         seqobj = preprocess_seq(seqrecord, alphabet)
@@ -323,7 +286,8 @@ def compute_background(fastas, alphabet, verbose=True):
     for letter, count in content.iteritems():
         content[letter] = (float(count) + 1) / total    # add pseudocount
         if content[letter] <= 0.05:
-            warnings.warn("Letter %s has low content: %0.2f" % (letter, content[letter]), Warning)
+            warnings.warn("Letter %s has low content: %0.2f" \
+                % (letter, content[letter]), Warning)
         pct_sum += content[letter]
 
     if verbose: print >> sys.stderr, dict(content)
@@ -331,41 +295,33 @@ def compute_background(fastas, alphabet, verbose=True):
     return content
 
 
-def main():
-    args = getoptions()
-    tic = time.time()
+def load_background(bg_file, uniform, *args):
+    """ Load background probabilities if available, otherwise compute from
+    input files or use uniform
+    """
+    if bg_file:
+        print >> sys.stderr, ("Reading custom background probabilities "
+            "from %s" % file)
+        # load custom background
+        # http://stackoverflow.com/a/11027069
+        with open(file, 'r') as fin:
+            bg = fin.read()
+            bg = ast.literal_eval(bg)
+            print >> sys.stderr, dict(bg)
+    elif not uniform:
+        bg = compute_background(args)
+    else:
+        bg = None
+    return bg
+
+
+def scan_main(fasta_file, pssm, alphabet, bg, args):
+
     final = pd.DataFrame()
     count = 0
 
-    # Calculate sequence background from input
-    if args.uniform_background or args.testseq is not None:
-        print >> sys.stderr, "Using uniform background probabilities"
-        bg = None
-    else:
-        if args.custom_background is not None:
-            print >> sys.stderr, ("Reading custom background probabilities "
-                                  "from %s" % args.custom_background)
-            # load custom background
-            # http://stackoverflow.com/a/11027069
-            with open(args.custom_background, 'r') as fin:
-                bg = fin.read()
-                bg = ast.literal_eval(bg)
-                print >> sys.stderr, dict(bg)
-        else:
-            bg = compute_background(args.fastafiles, args.alphabet, args.cores)
-
-            if args.bgonly:
-                # Print background probabilities and quit
-                print dict(bg)
-                sys.exit()
-
-
-    # Load PFMs
-    pssms = load_motifs(args.pfm_dir, args.pseudocount, args.alphabet, bg)
-
-    if args.testseq is not None:
-        #seq = _set_seq(SeqRecord(Seq(args.testseq)), args.alphabet)
-        final = scan_all(SeqRecord(Seq(args.testseq)), pssms, args)
+    if isinstance(fasta_file, SeqRecord):
+        final = scan_all(fasta_file, pssm, alphabet, args.minscore)
         final['Sequence_ID'] = 'testseq'
         final['Description'] = ''
         count += 1
@@ -373,11 +329,11 @@ def main():
         print >> sys.stderr, "Scanning sequences "
 
         results = []
-        seq_iter = parse_sequences(args.fastafiles, args.alphabet)
+        seqiter = parse_sequences(fastas)
 
         if args.debug:
             for seqrecord in seq_iter:
-                hits = scan_all(seqrecord, pssms, args)
+                hits = scan_all(seqrecord, pssm, args)
                 hits['Sequence_ID'] = seqrecord.id
                 hits['Description'] = seqrecord.description
                 results.append(hits)
@@ -386,7 +342,7 @@ def main():
             p = multiprocessing.Pool(args.cores)
             for i, batch in enumerate(batch_iterator(seq_iter, 500)):
                 batch_results = p.map(_scan_all_star, izip(batch,
-                                                           repeat(pssms),
+                                                           repeat(pssm),
                                                            repeat(args)
                                                           )
                                      )
@@ -404,9 +360,97 @@ def main():
         if len(results) != 0:
             final = pd.concat(results)
 
+    print >> sys.stderr, "Processed %d sequences" % count
     cols = final.columns.tolist()
     cols = cols[-2:] + cols[:-2]
-    final[cols].to_csv(sys.stdout, sep="\t", index=False)
+    return final[cols]
+
+def combine(seq_results, struct_results):
+    """ If scoring sequence and structure together, add up the log odds at
+    every position
+    """
+
+    # Keys to match by : Sequence_ID, Start, End
+    # Motif_ID may not match
+    result = pd.merge(seq_results, struct_results,
+                      on=['Sequence_ID', 'Start', 'End'])
+    result.rename(columns={'Description_x': 'Description.Seq',
+                           'Description_y': 'Description.Struct',
+                           'Sequence_x': 'Sequence.Seq',
+                           'Sequence_y': 'Sequence.Struct',
+                           'Motif_ID_x': 'Motif_ID.Seq',
+                           'Motif_ID_y': 'Motif_ID.Struct',
+                           'LogOdds_x': 'LogOdds.Seq',
+                           'LogOdds_y': 'LogOdds.Struct'}, inplace=True)
+    result['LogOdds.SeqStruct'] = result['LogOdds.Seq'] + \
+                                    result['LogOdds.Struct']
+    return result
+
+def main():
+    tic = time.time()
+    args = getoptions()
+    bg = None
+
+    if args.testseq:
+        args.testseq = args.testseq.split(',')
+
+    ## Sequence
+    if args.seq_type in ['RNA', 'RNASS']:
+        if args.testseq:
+            seq_file = SeqRecord(Seq(args.testseq[0]))
+        else:
+            seq_file = args.fastafiles[0]
+
+        if args.bg_seq and not args.testseq:
+            bg = load_background(args.bg_seq,
+                                 IUPAC.IUPACUnambiguousRNA(),
+                                 args.fastafiles[0],
+                                 args.uniform_background)
+
+        if not args.bgonly:
+            pssm = load_motif(args.pfm_seq,
+                              args.pseudocount,
+                              IUPAC.IUPACUnambiguousRNA(),
+                              bg)
+            seq_results = scan_main(seq_file,
+                                    pssm,
+                                    IUPAC.IUPACUnambiguousRNA(),
+                                    bg, args)
+
+    ## Structure
+    if args.seq_type in ['SS', 'RNASS']:
+        if args.testseq:
+            struct_file = SeqRecord(Seq(args.testseq[1]))
+        elif args.seq_type == 'SS':
+            struct_file = args.fastafiles[0]
+        else:
+            struct_file = args.fastafiles[1]
+
+        if args.bg_struct and not args.testseq:
+            bg = load_background(args.bg_struct,
+                                 ContextualSecondaryStructure(),
+                                 struct_file,
+                                 args.uniform_background)
+
+        if not args.bgonly:
+            pssm = load_motif(args.pfm_struct,
+                              args.pseudocount,
+                              ContextualSecondaryStructure(),
+                              bg)
+            struct_results = scan_main(struct_file,
+                                       pssm,
+                                       ContextualSecondaryStructure(),
+                                       bg, args)
+
+
+    if args.seq_type == 'RNASS':
+        combined_results = combine(seq_results, struct_results)
+        combined_results.to_csv(sys.stdout, sep="\t", index=False)
+    elif args.seq_type == 'RNA':
+        seq_results.to_csv(sys.stdout, sep="\t", index=False)
+    else:
+        struct_results.to_csv(sys.stdout, sep="\t", index=False)
+
     toc = time.time()
 
     runtime = float(toc - tic)
@@ -414,7 +458,6 @@ def main():
         print >> sys.stderr, "Done in %0.4f minutes!" % (runtime / 60)
     else:
         print >> sys.stderr, "Done in %0.4f seconds!" % (runtime)
-    print >> sys.stderr, "Processed %d sequences" % count
 
 if __name__ == '__main__':
     main()
