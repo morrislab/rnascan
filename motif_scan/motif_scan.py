@@ -39,9 +39,9 @@ def getoptions():
                         help="Input sequence and structure FASTA files")
     pfm_grp = parser.add_argument_group("PFM options")
     pfm_grp.add_argument('-p', '--pfm_seq', dest="pfm_seq", type=str,
-                        help="Sequence PFM")
+                         help="Sequence PFM")
     pfm_grp.add_argument('-q', '--pfm_struct', dest="pfm_struct", type=str,
-                        help="Structure PFM")
+                         help="Structure PFM")
 
     parser.add_argument('-C', '--pseudocount', type=float,
                         dest="pseudocount", default=0,
@@ -52,7 +52,8 @@ def getoptions():
     parser.add_argument('-t', '--testseq', dest='testseq', default=None,
                         help=("Supply a test sequence to scan. FASTA files "
                               "will be ignored. Can supply sequence and "
-                              "structure as single string separated by comma."))
+                              "structure as single string separated by "
+                              " comma."))
     parser.add_argument('-c', '--cores', type=int, default=8, dest="cores",
                         help="Number of processing cores [%(default)s]")
 
@@ -273,9 +274,9 @@ def compute_background(fastas, alphabet, verbose=True):
     print >> sys.stderr, "Calculating background probabilities..."
     content = defaultdict(int)
     total = len(alphabet.letters)       # add psuedocount for each letter
-    seqiter = parse_sequences(fastas)
+    seq_iter = parse_sequences(fastas)
 
-    for seqrecord in seqiter:
+    for seqrecord in seq_iter:
         seqobj = preprocess_seq(seqrecord, alphabet)
         for letter in alphabet.letters:
             amount = seqobj.count(letter)
@@ -286,8 +287,8 @@ def compute_background(fastas, alphabet, verbose=True):
     for letter, count in content.iteritems():
         content[letter] = (float(count) + 1) / total    # add pseudocount
         if content[letter] <= 0.05:
-            warnings.warn("Letter %s has low content: %0.2f" \
-                % (letter, content[letter]), Warning)
+            warnings.warn("Letter %s has low content: %0.2f"
+                          % (letter, content[letter]), Warning)
         pct_sum += content[letter]
 
     if verbose: print >> sys.stderr, dict(content)
@@ -329,7 +330,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
         print >> sys.stderr, "Scanning sequences "
 
         results = []
-        seqiter = parse_sequences(fastas)
+        seq_iter = parse_sequences(fasta_file)
 
         if args.debug:
             for seqrecord in seq_iter:
@@ -344,8 +345,8 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
                 batch_results = p.map(_scan_all_star, izip(batch,
                                                            repeat(pssm),
                                                            repeat(args)
-                                                          )
-                                     )
+                                                           )
+                                      )
 
                 # Process each result
                 for j, hits in enumerate(batch_results):
@@ -365,6 +366,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
     cols = cols[-2:] + cols[:-2]
     return final[cols]
 
+
 def combine(seq_results, struct_results):
     """ If scoring sequence and structure together, add up the log odds at
     every position
@@ -383,8 +385,9 @@ def combine(seq_results, struct_results):
                            'LogOdds_x': 'LogOdds.Seq',
                            'LogOdds_y': 'LogOdds.Struct'}, inplace=True)
     result['LogOdds.SeqStruct'] = result['LogOdds.Seq'] + \
-                                    result['LogOdds.Struct']
+        result['LogOdds.Struct']
     return result
+
 
 def main():
     tic = time.time()
@@ -458,6 +461,7 @@ def main():
         print >> sys.stderr, "Done in %0.4f minutes!" % (runtime / 60)
     else:
         print >> sys.stderr, "Done in %0.4f seconds!" % (runtime)
+
 
 if __name__ == '__main__':
     main()
