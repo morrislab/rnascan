@@ -315,8 +315,9 @@ def compute_background(fastas, alphabet, verbose=True):
     for seqrecord in seqiter:
         seqobj = preprocess_seq(seqrecord, alphabet)
         for letter in alphabet.letters:
-            content[letter] += seqobj.count(letter)
-            total += seqobj.count(letter)
+            amount = seqobj.count(letter)
+            content[letter] += amount
+            total += amount
     pct_sum = 0
 
     for letter, count in content.iteritems():
@@ -342,7 +343,7 @@ def main():
         bg = None
     else:
         if args.custom_background is not None:
-            print >> sys.stderr, ("Reading custom background probabilities "                  
+            print >> sys.stderr, ("Reading custom background probabilities "
                                   "from %s" % args.custom_background)
             # load custom background
             # http://stackoverflow.com/a/11027069
