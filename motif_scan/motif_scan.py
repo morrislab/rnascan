@@ -334,7 +334,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
 
         if args.debug:
             for seqrecord in seq_iter:
-                hits = scan_all(seqrecord, pssm, args)
+                hits = scan_all(seqrecord, pssm, alphabet, args.minscore)
                 hits['Sequence_ID'] = seqrecord.id
                 hits['Description'] = seqrecord.description
                 results.append(hits)
@@ -344,7 +344,8 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
             for i, batch in enumerate(batch_iterator(seq_iter, 500)):
                 batch_results = p.map(_scan_all_star, izip(batch,
                                                            repeat(pssm),
-                                                           repeat(args)
+                                                           repeat(alphabet),
+                                                           repeat(args.minscore)
                                                            )
                                       )
 
