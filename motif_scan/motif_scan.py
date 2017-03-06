@@ -91,25 +91,34 @@ def getoptions():
         parser.error("You cannot set uniform and custom background options "
                      "at the same time\n")
 
+
+    return args
+
+
+def _guess_seq_type(args):
+    """Given arguments, determine the sequence analysis type: RNA, SS, or RNASS
+    """
     nfiles = len(args.fastafiles)
 
     if nfiles == 2:
         if not (args.pfm_seq or args.pfm_struct):
-            parser.error("Missing PFMs")
-        args.seq_type == "RNASS"
+            print >> sys.stderr, "Missing PFMs"
+            sys.exit(1)
+        seq_type = "RNASS"
     else:   # nfiles == 1
         if args.pfm_seq and args.pfm_struct and not args.testseq:
-            parser.error("Can't specify two PFMs with one input file")
+            print >> sys.stderr, "Can't specify two PFMs with one input file"
+            sys.exit(1)
         elif args.pfm_seq and args.pfm_struct and args.testseq:
-            args.seq_type = "RNASS"
+            seq_type = "RNASS"
         elif args.pfm_seq:
-            args.seq_type = "RNA"
+            seq_type = "RNA"
         elif args.pfm_struct:
-            args.seq_type = "SS"
+            seq_type = "SS"
         else:
-            parser.error("Must specify PFMs with -p and/or -q")
-
-    return args
+            print >> sys.stderr, "Must specify PFMs with -p and/or -q"
+            sys.exit(1)
+    return seq_type
 
 
 def batch_iterator(iterator, batch_size):
@@ -393,15 +402,16 @@ def combine(seq_results, struct_results):
 def main():
     tic = time.time()
     args = getoptions()
+    seq_type = _guess_seq_type(args)
     bg = None
 
     if args.testseq:
-        args.testseq = args.testseq.split(',')
+        testseq_stack = args.testseq.split(',')[::-1]    # make a stack
 
     ## Sequence
-    if args.seq_type in ['RNA', 'RNASS']:
+    if seq_type in ['RNA', 'RNASS']:
         if args.testseq:
-            seq_file = SeqRecord(Seq(args.testseq[0]))
+            seq_file = SeqRecord(Seq(testseq_stack.pop()))
         else:
             seq_file = args.fastafiles[0]
 
@@ -422,10 +432,10 @@ def main():
                                     bg, args)
 
     ## Structure
-    if args.seq_type in ['SS', 'RNASS']:
+    if seq_type in ['SS', 'RNASS']:
         if args.testseq:
-            struct_file = SeqRecord(Seq(args.testseq[1]))
-        elif args.seq_type == 'SS':
+            struct_file = SeqRecord(Seq(testseq_stack.pop()))
+        elif seq_type == 'SS':
             struct_file = args.fastafiles[0]
         else:
             struct_file = args.fastafiles[1]
@@ -447,10 +457,10 @@ def main():
                                        bg, args)
 
 
-    if args.seq_type == 'RNASS':
+    if seq_type == 'RNASS':
         combined_results = combine(seq_results, struct_results)
         combined_results.to_csv(sys.stdout, sep="\t", index=False)
-    elif args.seq_type == 'RNA':
+    elif seq_type == 'RNA':
         seq_results.to_csv(sys.stdout, sep="\t", index=False)
     else:
         struct_results.to_csv(sys.stdout, sep="\t", index=False)
