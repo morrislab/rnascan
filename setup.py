@@ -1,5 +1,10 @@
+import sys
 from setuptools import find_packages
 from distutils.core import setup, Extension
+
+if sys.version_info < (2, 7):
+  sys.stderr.write("At least Python 2.7 is required\n")
+  sys.exit(1)
 
 # Borrowing setup.py code from Biopython
 
@@ -39,14 +44,14 @@ if is_Numpy_installed():
 ))
 
 setup(name='motif_scan',
-      version='0.8.0',
-      description='Scan RBP motifs and secondary structure from PFMs',
-      url='http://github.com/kcha/motif_scan',
-      author='Kevin Ha',
-      author_email='k.ha@mail.utoronto.ca',
-      license='MIT',
+      version='0.9.0',
+      description='Scan RBP motifs and secondary structure from SSMs',
+      url='http://github.com/',
+      author='Kevin Ha, Kate Cook',
+      author_email='k.ha@mail.utoronto.ca, kate.cook@gmail.com',
+      license='',
       packages=find_packages(),
-      scripts=['bin/motif_scan', 'bin/combine_pfms'],
+      scripts=['bin/motif_scan'],
       install_requires=['setuptools',
                         'pandas >= 0.17',
                         'numpy >= 1.10.0',
