@@ -38,20 +38,20 @@ if is_Numpy_installed():
     import numpy
     numpy_include_dir = numpy.get_include()
     EXTENSIONS.append(
-        Extension('motif_scan.BioAddons.motifs._pwm',
-                  ["motif_scan/BioAddons/motifs/_pwm.c"],
+        Extension('rnascan.BioAddons.motifs._pwm',
+                  ["rnascan/BioAddons/motifs/_pwm.c"],
                   include_dirs=[numpy_include_dir],
 ))
 
-setup(name='motif_scan',
+setup(name='rnascan',
       version='0.9.0',
       description='Scan RBP motifs and secondary structure from SSMs',
-      url='http://github.com/',
+      url='http://github.com/morrislab/rnascan',
       author='Kevin Ha, Kate Cook',
       author_email='k.ha@mail.utoronto.ca, kate.cook@gmail.com',
       license='',
       packages=find_packages(),
-      scripts=['scripts/motif_scan', 'scripts/run_folding'],
+      scripts=['scripts/rnascan', 'scripts/run_folding'],
       install_requires=['setuptools',
                         'pandas >= 0.17',
                         'numpy >= 1.10.0',

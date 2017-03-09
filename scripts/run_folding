@@ -18,8 +18,8 @@
 import sys
 import argparse
 from Bio import SeqIO
-from motif_scan.average_structure import get_structure_probability_matrix_for_sequence
-from motif_scan.pfmutil import write_pfm
+from rnascan.average_structure import get_structure_probability_matrix_for_sequence
+from rnascan.pfmutil import write_pfm
 import multiprocessing
 from itertools import izip, repeat
 
