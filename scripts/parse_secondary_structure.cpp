@@ -1,3 +1,4 @@
+// EDITED 20170106 by Kaitlin Laverty due to issue with Multi loop labeling
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -67,7 +68,7 @@ string parse(string structure)
 	vector<int> pairs(len, -1);  // create a vector for holding pairs
 	findPairs(structure, pairs);// find the pairs 
 	
-	int i, j, k, m;
+	int i, j, k, m, s, e; // s and e ADDED by Kaitlin 20170106
 	string alph = "";
 	string annot = "";
 	
@@ -98,12 +99,12 @@ string parse(string structure)
             {	
 				annot = "H"; //hairpin loop
 			}
-		    else if(structure[k] == ')' && structure[m] == ')') //bulge or interior
+		    else if(structure[k] == ')' && structure[m] == ')') //bulge or interior or multiloop! EDITED by Kaitlin 20170106
 		    {
 				if(pairs[m] +1 == pairs[k] )  //m and k's paired bases are consecutive so this "." belongs to a bulge 
 					annot = "B"; //hairpin loop
 				else  
-					annot = "T"; // interior loop
+					annot = "N"; // interior loop EDITED by Kaitlin 20170106, no longer labels interior loops here, just N
             }
             else if(structure[k] == ')' && structure[m] == '(')
             {
@@ -152,10 +153,40 @@ string parse(string structure)
      			alph += "R";
 		}
 	}
-	//analyze multiloops
-	for( j = 0; j < len; j++) //get rid of "N"s
+  
+	//analyze multiloops EDITED (following 62 lines) by Kaitlin 20170106
+	vector<int> Mindices(len); //create vector to save which indices should be M
+  for( j = 0; j < len; j++) 
 	{
-		if(alph[j] == 'N')  
+    if(alph[j] == 'R')
+    {
+      k = j;
+      if(alph[k+1] == 'L' || alph[k+1] == 'M') //find "switches" from R to L, RM*L
+      {
+        m = k+1;
+        while(structure[m] == '.') { //find end of "switch"
+          m += 1;
+        }
+        s = pairs[k]-1; //index at which multi loop starts
+        e = pairs[m]+1; //index at which multi loop ends
+        while(s >= 0 && structure[s] == '.')  //replace any loop left of the multiloop region with M
+        {
+          if (alph[s] == 'N') {
+            Mindices[s] = 1;
+          }
+          s -= 1;
+        }
+        while(e < len && structure[e] == '.') //replace any loop right of the multiloop region with M
+        {
+          if (alph[e] == 'N') {
+            Mindices[e] = 1;
+          }
+          e += 1;
+        }
+      }
+    }
+    // old code
+/*		if(alph[j] == 'N')  
 		{
 			k=j-1;
 			while(structure[k] == '.')  //search for the nearest parantheses on the left side of this dot
@@ -169,9 +200,22 @@ string parse(string structure)
 				alph[j] = 'M';
 			else
 				alph[j] = 'T';			
-		} 	
-	}
-	
+		} */	
+	} 
+  for( j = 0; j < len; j++) //get rid of "N"s
+  {
+    if(alph[j] == 'N') {
+      if(Mindices[j] == 1) 
+      {
+        alph[j] = 'M';
+      } 
+      else 
+      {
+        alph[j] = 'T';  
+      }
+    }
+  }
+  
 	return alph;
 	
 }
