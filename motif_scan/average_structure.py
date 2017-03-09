@@ -20,7 +20,7 @@ import tempfile
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-from rnascan.pfmutil import norm_pfm
+from pfmutil import norm_pfm
 import subprocess
 import numpy as np
 

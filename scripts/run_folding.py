@@ -18,18 +18,11 @@
 import sys
 import argparse
 from Bio import SeqIO
-sys.path.append("..")
-import rnascan
-from rnascan.average_structure import get_structure_probability_matrix_for_sequence
-from rnascan.pfmutil import write_pfm
+from motif_scan.average_structure import get_structure_probability_matrix_for_sequence
+from motif_scan.pfmutil import write_pfm
 import multiprocessing
 from itertools import izip, repeat
 
-# old arguments
-# infile = sys.argv[1]
-# outfile = sys.argv[2]
-# window_size = sys.argv[3]
-# overlap_size = sys.argv[4]
 parser = argparse.ArgumentParser(description='Calculate the average structural profile of an RNA sequence.')
 parser.add_argument("infile",help="name of file containing input RNA sequence to fold, in fasta format")
 parser.add_argument("outfile",help="filename for output")
