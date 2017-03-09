@@ -1,99 +1,112 @@
-# motif_scan.py
+# rnascan
 
-A Python script for scanning RNA-binding protein (RBP) motifs in a given set of
-sequences.
+rnascan is a (mostly) python suite to scan RNA sequences and secondary structures with sequence and secondary structure PFMs. Secondary structure is represented as weights in different secondary structure contexts, similar to how a PFM represents weights of different nucleotides or amino acids. This allows representation and use of secondary structures in a way that is similar to how PFMs are used to scan nucleotide sequences, and also allows for some flexibility in the structure, as you might find in the boltzmann distribution of secondary structures.
 
-This program has been developed for scanning motifs under three modes:
+The secondary structure alphabet is as follows:
+B - bulge loop
+E - external (unpaired) RNA
+H - hairpin loop
+L - left paired RNA (i.e., a '(' in dot-bracket format)
+M - multiloop
+R - right paired RNA (i.e., a ')' in dot-bracket format)
+T - internal loop
 
-1. DNA/RNA motifs
-1. Contextual secondary structure motifs
-1. RNA motifs *and* secondary structure (RNA+structure)
+The rnascan suite consists of two tools:
 
-# Prerequisites
-
-## Python packages
-This program was written for Python 2.7 and uses the following Python libraries
-
- - [`pandas`](http://pandas.pydata.org) (v0.17 or higher): for handling the results using DataFrames
- - [`numpy`](http://www.numpy.org/) (v1.10 or higher): for numerical computations
- - [`biopython`](http://biopython.org) (v1.66 or higher): for parsing FASTA, PFMs, and performing motif scanning
-
-Alternatively, all of the above pacakges can be installed via the
-[Anaconda](https://www.continuum.io/why-anaconda) distribution.
+ 1. `run_folding`: Calculate an average structural context profile of an RNA sequence by folding overlapping 100 nt subsequences and averaging across.
+ 1. `rnascan`: Scan RNA sequences and secondary structures with sequence and
+ secondary structure PFMs.
 
 # Installation
 
-Download the latest source code and install using provided `setup.py` script:
+### 1. Install ViennaRNA
+
+The predict secondary structures, the program `RNAfold` from the [ViennaRNA](https://www.tbi.univie.ac.at/RNA/index.html) package is used. Please follow the installation instructions on their website.
+
+### 2. Download rnascan source
 
 ```
 git clone git@github.com:kcha/motif_scan.git
 cd motif_scan
-python setup.py install
 ```
 
-Or for user-specific installation:
+### 3. Compile secondary structure parser C++ script
+
+The compiled binary must be saved in a location where it can be executed (i.e. is listed in your `PATH` environment variable). Here, we use the user's local `bin`:
+
 ```
+g++ -o ~/bin/parse_secondary_structure scripts/parse_secondary_structure.cpp
+```
+
+### 4. Install `rnascan` Python components
+
+This program was written for Python 2.7+ and uses the following Python packages:
+
+ - [`pandas`](http://pandas.pydata.org) (v0.17 or higher)
+ - [`numpy`](http://www.numpy.org/) (v1.10 or higher)
+ - [`biopython`](http://biopython.org) (v1.66 or higher)
+
+If the above is not installed already, they will be automatically installed during installation of rnascan. To proceed with installing, enter the following command:
+
+```
+python setup.py install
+
+# or for user-specific installation:
 python setup.py install --user
 ```
 
 # Usage
 
-## Motif Scanning
+For full documentation of options, refer to the help messages using the `-h` option.
 
-For full documentation of options, please refer to the help message:
-
-```
-motif_scan -h
-```
-
-### Quick Usage
-A minimal usage command for scanning RNA (default) motifs:
+## `run_folding`
 
 ```
-motif_scan -d pfm_dir sequences.fasta > hits.tab
+run_folding sequences.fasta /path/to/output_dir
 ```
 
-Parallelization is implemented via Python's [`multiprocessing`](https://docs.python.org/2/library/multiprocessing.html) module:
+The second argument `/path/to/output_dir` will be where the average structure profiles will be saved. One file per FASTA record will be outputted.
+
+## `rnascan`
+
+Scanning can be performed in four modes:
+
+ 1. Sequence only (using `-p` to specify the sequence PFM)
+ 1. Structure only (using `-q` to specify the structure PFM)
+ 1. Sequence and structure (`-p` and `-q`)
+ 1. Sequence and averaged structure (`-p` and `-q`)
+
+A minimal usage command
 ```
-motif_scan -c 8 -d pfm_dir sequences.fasta > hits.tab
-```
+# To run a test sequence
+rnascan -p pfm_seq.txt -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
 
-To run a test sequence:
+# Sequence-only (use -p)
+rnascan -p pfm_seq.txt sequences.fasta > hits.tab
 
-```
-motif_scan -d pfm_dir -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
-```
+# Structure-only (use -q)
+rnascan -q pfm_struct.txt structures.fasta > hits.tab
 
-For scanning DNA and secondary structure motifs, use the option `-t` to change
-the mode to `DNA` or `SS`, respectively. For RNA+structure, see below.
+# Sequence and structure
+rnascan -p pfm_seq.txt -q pfm_struct.txt sequences.fasta structures.fasta > hits.tab
 
-### Scanning RNA+structure PFMs
-
-For RNA+structure motif scanning, a new PFM must
-be computed from the given RNA PFM and secondary structure PFM. This can
-be done using the command `combine_pfms`:
-
-```
-combine_pfms rna_pfm.txt secondary_structure_pfm.txt > combined_pfm_dir/pfm.txt
-```
-
-Next, supply two FASTA sequences when calling `motif_scan`:
-
-1. RNA sequences
-1. Contextual secondary structure sequences
-
-```
-motif_scan -d combined_pfm_dir rna_sequences.fa secondary_structure_sequences.fa
+# Sequence and averaged structure
+rnascan -p pfm_seq.txt -q pfm_struct.txt sequences.fasta averaged_structures/ > hits.tab
 ```
 
-# References
+Note that in the last example, the second positional argument is the path to a
+directory containing the average structure profiles generated by `run_folding`.
+`rnascan` will look inside the directory and automatically search for files
+that look like `structure.<sequence_id>.txt`.
 
- - Ray D, Kazan H, Cook KB, Weirauch MT, Najafabadi HS, Li X, Gueroussov S, Albu
-   M, Zheng H, Yang A, Na H, Irimia M, Matzat LH, Dale RK, Smith SA, Yarosh CA,
-   Kelly SM, Nabet B, Mecenas D, Li W, Laishram RS, Qiao M, Lipshitz HD, Piano
-   F, Corbett AH, Carstens RP, Frey BJ, Anderson RA, Lynch KW, Penalva LO, Lei
-   EP, Fraser AG, Blencowe BJ, Morris QD, Hughes TR. [A compendium of RNA-binding
-   motifs for decoding gene
-   regulation](http://www.nature.com/nature/journal/v499/n7457/full/nature12311.html). Nature. 2013 Jul 11;499(7457):172-7.
-   doi: 10.1038/nature12311. PubMed PMID: 23846655.
- - [Biopython tutorial on sequence motif analysis](http://biopython.org/DIST/docs/tutorial/Tutorial.html#htoc213)
+The following is an example of a more detailed usage, where we want to print the score at **every** position (set the minimum score to be `-inf`), and use multiple processing cores (via `-c`):
+
+```
+rnascan -p pfm_seq.txt -q pfm_struct.txt -m ' -inf' -c 8 sequences.fasta averaged_structures/ > hits.tab
+```
+
+# Citation
+
+# Links
+
+ * http://hugheslab.ccbr.utoronto.ca/supplementary-data/RNAcompete-S/index.html
