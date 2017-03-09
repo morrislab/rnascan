@@ -5,22 +5,22 @@ Calculates motif scores for all PFMs in a given set of sequences in FASTA
 format
 
 Requires python 2.7+
-
-This tool was motivated by the RNA RBP motif scanning tool from CISBP-RNA:
-http://cisbp-rna.ccbr.utoronto.ca/TFTools.php
 """
 
 import sys
 import time
+import glob
 import fileinput
 import os
 import os.path
 import warnings
 import argparse
 import ast
+import re
 from collections import defaultdict
 import multiprocessing
 import pandas as pd
+import numpy as np
 from itertools import izip, repeat
 from BioAddons.Alphabet import ContextualSecondaryStructure
 from BioAddons.motifs import matrix
@@ -29,7 +29,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 
-__version__ = 'v0.8.0'
+__version__ = 'v0.9.0'
 
 
 def getoptions():
@@ -91,10 +91,12 @@ def getoptions():
         parser.error("You cannot set uniform and custom background options "
                      "at the same time\n")
 
-
     return args
 
 
+###############################################################################
+# Sequence functions
+###############################################################################
 def _guess_seq_type(args):
     """Given arguments, determine the sequence analysis type: RNA, SS, or RNASS
     """
@@ -151,6 +153,46 @@ def batch_iterator(iterator, batch_size):
             yield batch
 
 
+def parse_sequences(fasta_file):
+    """Load FASTA sequence and return SeqRecord iterator
+    """
+    fin = fileinput.input(fasta_file, openhook=fileinput.hook_compressed)
+    return SeqIO.parse(fin, 'fasta')
+
+
+def preprocess_seq(seqrec, alphabet):
+    """Pre-process the SeqRecord by setting the alphabet and performing
+    transcription if necessary.
+
+    Return Seq object
+    """
+    if not isinstance(seqrec, SeqRecord):
+        raise TypeError("SeqRecord object must be supplied")
+
+    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA) and \
+        not isinstance(seqrec.seq.alphabet, RNAAlphabet):
+        # If RNA alphabet is specified and input sequences are in DNA, we need
+        # to transcribe them to RNA
+        try:
+            seq = seqrec.seq.transcribe()
+            seq.alphabet = alphabet
+            seq = seq.upper()
+        except:
+            raise
+    else:
+        seq = seqrec.seq
+
+    ## If strand is specified, reverse-complement the sequence
+    #strand_match = re.search(r'strand=([+-])', seqrec.description)
+    #if strand_match and strand_match.group(1) == "-":
+        #seq = seq.reverse_complement()
+
+    return seq
+
+
+###############################################################################
+# PFM functions
+###############################################################################
 def load_motif(pfm_file, *args):
     """ Load PFM
     """
@@ -194,49 +236,12 @@ def pfm2pssm(pfm_file, pseudocount, alphabet, background=None):
     return pssm
 
 
-def preprocess_seq(seqrec, alphabet):
-    """Pre-process the SeqRecord by setting the alphabet and performing
-    transcription if necessary.
-
-    Return Seq object
-    """
-    if not isinstance(seqrec, SeqRecord):
-        raise TypeError("SeqRecord object must be supplied")
-
-    if isinstance(alphabet, IUPAC.IUPACAmbiguousRNA) and \
-        not isinstance(seqrec.seq.alphabet, RNAAlphabet):
-        # If RNA alphabet is specified and input sequences are in DNA, we need
-        # to transcribe them to RNA
-        try:
-            seq = seqrec.seq.transcribe()
-            seq.alphabet = alphabet
-            seq = seq.upper()
-        except:
-            raise
-    else:
-        seq = seqrec.seq
-
-    ## If strand is specified, reverse-complement the sequence
-    #strand_match = re.search(r'strand=([+-])', seqrec.description)
-    #if strand_match and strand_match.group(1) == "-":
-        #seq = seq.reverse_complement()
-
-    return seq
-
-
-def collect(motif_hits):
-    """ Finalize results into a DataFrame for output
-    """
-    columns=['Motif_ID', 'Start', 'End', 'Sequence', 'LogOdds']
-
-    # Create DataFrame from motif hits
-    hits = pd.DataFrame(motif_hits, columns=columns)
-
-    # Merge metadata with hits
-    return hits.sort_values(['Start', 'Motif_ID'])
-
-
+###############################################################################
+# Motif scan functions
+###############################################################################
 def scan(pssm, seq, alphabet, minscore):
+    """ Core scanning function
+    """
     results = []
     (motif_id, pm) = pssm.items()[0]
     for position, score in pm.search(seq, threshold=minscore, both=False):
@@ -257,7 +262,6 @@ def scan(pssm, seq, alphabet, minscore):
 def scan_all(seqrecord, pssm, alphabet, *args):
     """ Scan seq for all motifs in pssms
     """
-
     seq = preprocess_seq(seqrecord, alphabet)
     results = scan(pssm, seq, alphabet, *args)
 
@@ -266,17 +270,151 @@ def scan_all(seqrecord, pssm, alphabet, *args):
     return final.sort_values(['Start', 'Motif_ID'])
 
 
-def _scan_all_star(a_b):
+def _scan_all(a_b):
     return scan_all(*a_b)
 
 
-def parse_sequences(fasta_file):
-    """Load FASTA sequence and return SeqRecord iterator
+def scan_averaged_structure(struct_file, pssm, minscore):
+    """Scan PSSM on an averaged secondary structure model
     """
-    fin = fileinput.input(fasta_file, openhook=fileinput.hook_compressed)
-    return SeqIO.parse(fin, 'fasta')
+    struct = pd.read_table(struct_file)
+    del struct['PO']
+    (motif_id, pm) = pssm.items()[0]
+    motif_scores = []
+    pm = pd.DataFrame(pm)     # Convert dict back to data frame
+    N = len(pm.index)
+    for i in xrange(0, len(struct.index) - N + 1):
+        score = 0
+        for j in xrange(0, N):
+            # Multiply by SSM
+            score += np.nan_to_num(np.dot(struct.iloc[i + j, :],
+                                          pm.iloc[j, :]))
+
+        # Sum log odds
+        if score > minscore:
+            motif_scores.append(pd.Series([motif_id, i + 1, i + N, '.', score],
+                                          index=['Motif_ID', 'Start', 'End',
+                                                 'Sequence',
+                                                 'LogOdds']))
+    return pd.DataFrame(motif_scores)
 
 
+def _scan_averaged_structure(a_b):
+    return scan_averaged_structure(*a_b)
+
+
+def _add_sequence_id(df, seq_id, description):
+    """ Helper function to add Sequence_ID and Description (df is a reference)
+    """
+    df['Sequence_ID'] = seq_id
+    df['Description'] = description
+
+
+def scan_main(fasta_file, pssm, alphabet, bg, args):
+    """ Main function for handling scanning of PSSM and a sequence/structure
+    """
+    final = pd.DataFrame()
+    count = 0
+
+    if isinstance(fasta_file, SeqRecord):
+        final = scan_all(fasta_file, pssm, alphabet, args.minscore)
+        _add_sequence_id(final, 'testseq', '')
+        count += 1
+    else:
+        results = []
+
+        if os.path.isdir(fasta_file):
+            print >> sys.stderr, "Scanning averaged secondary structures "
+
+            structures = glob.glob(fasta_file + "/structure.*.txt")
+            if len(structures) == 0:
+                raise IOError("No averaged structure files found")
+
+            if args.debug:
+                for struct_file in structures:
+                    hits = scan_averaged_structure(struct_file, pssm,
+                                                 args.minscore)
+                    _add_sequence_id(hits, struct_file, '')
+                    results.append(hits)
+                    count += 1
+            else:
+                p = multiprocessing.Pool(args.cores)
+                batch_results = p.map(_scan_averaged_structure,
+                                      izip(structures, repeat(pssm),
+                                           repeat(args.minscore)))
+                for j, hits in enumerate(batch_results):
+                    if hits is None:
+                        continue
+                    match = re.search(r'^structure\.(.*)\.txt$',
+                                      os.path.basename(structures[j]))
+                    _add_sequence_id(hits, match.group(1), '')
+                    count += 1
+                    results.append(hits)
+                p.close()
+        else:
+            print >> sys.stderr, "Scanning sequences "
+
+            seq_iter = parse_sequences(fasta_file)
+
+            if args.debug:
+                for seqrecord in seq_iter:
+                    hits = scan_all(seqrecord, pssm, alphabet, args.minscore)
+                    _add_sequence_id(hits, seqrecord.id, seqrecord.description)
+                    results.append(hits)
+                    count += 1
+            else:
+                p = multiprocessing.Pool(args.cores)
+                for i, batch in enumerate(batch_iterator(seq_iter, 2000)):
+                    batch_results = p.map(_scan_all, izip(batch,
+                                                          repeat(pssm),
+                                                          repeat(alphabet),
+                                                          repeat(args.minscore)
+                                                          )
+                                          )
+
+                    # Process each result
+                    for j, hits in enumerate(batch_results):
+                        if hits is None:
+                            continue
+                        _add_sequence_id(hits, batch[j].id,
+                                         batch[j].description)
+                        count += 1
+                        results.append(hits)
+                p.close()
+
+        if len(results) != 0:
+            final = pd.concat(results)
+
+    print >> sys.stderr, "Processed %d sequences" % count
+    cols = final.columns.tolist()
+    cols = cols[-2:] + cols[:-2]
+    return final[cols]
+
+
+def combine(seq_results, struct_results):
+    """ If scoring sequence and structure together, add up the log odds at
+    every position
+    """
+    # Keys to match by : Sequence_ID, Start, End
+    # NB: Motif_ID may not match
+    result = pd.merge(seq_results, struct_results,
+                      on=['Sequence_ID', 'Start', 'End'])
+    result.rename(columns={'Description_x': 'Description.Seq',
+                           'Description_y': 'Description.Struct',
+                           'Sequence_x': 'Sequence.Seq',
+                           'Sequence_y': 'Sequence.Struct',
+                           'Motif_ID_x': 'Motif_ID.Seq',
+                           'Motif_ID_y': 'Motif_ID.Struct',
+                           'LogOdds_x': 'LogOdds.Seq',
+                           'LogOdds_y': 'LogOdds.Struct'}, inplace=True)
+    result['LogOdds.SeqStruct'] = result['LogOdds.Seq'] + \
+        result['LogOdds.Struct']
+    return result
+
+
+###############################################################################
+# Background functions
+###############################################################################
 def compute_background(fastas, alphabet, verbose=True):
     """ Compute background probabiilities from all input sequences
     """
@@ -325,80 +463,9 @@ def load_background(bg_file, uniform, *args):
     return bg
 
 
-def scan_main(fasta_file, pssm, alphabet, bg, args):
-
-    final = pd.DataFrame()
-    count = 0
-
-    if isinstance(fasta_file, SeqRecord):
-        final = scan_all(fasta_file, pssm, alphabet, args.minscore)
-        final['Sequence_ID'] = 'testseq'
-        final['Description'] = ''
-        count += 1
-    else:
-        print >> sys.stderr, "Scanning sequences "
-
-        results = []
-        seq_iter = parse_sequences(fasta_file)
-
-        if args.debug:
-            for seqrecord in seq_iter:
-                hits = scan_all(seqrecord, pssm, alphabet, args.minscore)
-                hits['Sequence_ID'] = seqrecord.id
-                hits['Description'] = seqrecord.description
-                results.append(hits)
-                count += 1
-        else:
-            p = multiprocessing.Pool(args.cores)
-            for i, batch in enumerate(batch_iterator(seq_iter, 500)):
-                batch_results = p.map(_scan_all_star, izip(batch,
-                                                           repeat(pssm),
-                                                           repeat(alphabet),
-                                                           repeat(args.minscore)
-                                                           )
-                                      )
-
-                # Process each result
-                for j, hits in enumerate(batch_results):
-                    if hits is None:
-                        continue
-                    hits['Sequence_ID'] = batch[j].id
-                    hits['Description'] = batch[j].description
-                    count += 1
-                    results.append(hits)
-            p.close()
-
-        if len(results) != 0:
-            final = pd.concat(results)
-
-    print >> sys.stderr, "Processed %d sequences" % count
-    cols = final.columns.tolist()
-    cols = cols[-2:] + cols[:-2]
-    return final[cols]
-
-
-def combine(seq_results, struct_results):
-    """ If scoring sequence and structure together, add up the log odds at
-    every position
-    """
-
-    # Keys to match by : Sequence_ID, Start, End
-    # Motif_ID may not match
-    result = pd.merge(seq_results, struct_results,
-                      on=['Sequence_ID', 'Start', 'End'])
-    result.rename(columns={'Description_x': 'Description.Seq',
-                           'Description_y': 'Description.Struct',
-                           'Sequence_x': 'Sequence.Seq',
-                           'Sequence_y': 'Sequence.Struct',
-                           'Motif_ID_x': 'Motif_ID.Seq',
-                           'Motif_ID_y': 'Motif_ID.Struct',
-                           'LogOdds_x': 'LogOdds.Seq',
-                           'LogOdds_y': 'LogOdds.Struct'}, inplace=True)
-    result['LogOdds.SeqStruct'] = result['LogOdds.Seq'] + \
-        result['LogOdds.Struct']
-    return result
-
-
+###############################################################################
+# Main
+###############################################################################
 def main():
     tic = time.time()
     args = getoptions()
