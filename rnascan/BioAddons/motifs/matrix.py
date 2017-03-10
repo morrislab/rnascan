@@ -1,21 +1,25 @@
 # Copyright 2013 by Michiel de Hoon.  All rights reserved.
+# Copyright 2016 modified by Kevin Ha
 # This code is part of the Biopython distribution and governed by its
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
-# Modified by Copyright 2016 by Kevin Ha
-"""This new class inherits Bio.motifs.matrix.PositionSpecificScoringMatrix.
-It has been modified to support any kind of Alphabet. This allows us to
-perform motif scans on RNA sequence as well as RNA secondary structure.
+#
 
-The main change is the fact that the 'ACGT' hard-coding has been replaced
-with whatever letters are in the Alphabet of the matrix. This seems to be
-sufficient enough for our purposes.
-"""
+
+
 from Bio.motifs import matrix
 from Bio.Alphabet import NucleotideAlphabet
 import platform
 
 class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix):
+    """This new class inherits Bio.motifs.matrix.PositionSpecificScoringMatrix.
+    It has been modified to support any kind of Alphabet. This allows us to
+    perform motif scans on RNA sequence as well as RNA secondary structure.
+
+    The main change is the fact that the 'ACGT' hard-coding has been replaced
+    with whatever letters are in the Alphabet of the matrix. This seems to be
+    sufficient enough for our purposes.
+    """
 
     def _py_calculate(self, sequence, m, n):
         """Handles the default calcuate() method in Python.
