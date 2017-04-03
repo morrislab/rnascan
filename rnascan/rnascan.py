@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (C) 2014-2015 Kate Cook, 2016-2017 Kevin Ha
 #
 # This file is part of rnascan.
