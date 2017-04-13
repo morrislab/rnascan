@@ -460,7 +460,7 @@ def load_background(bg_file, uniform, *args):
             "from %s" % file)
         # load custom background
         # http://stackoverflow.com/a/11027069
-        with open(file, 'r') as fin:
+        with open(bg_file, 'r') as fin:
             bg = fin.read()
             bg = ast.literal_eval(bg)
             print >> sys.stderr, dict(bg)
