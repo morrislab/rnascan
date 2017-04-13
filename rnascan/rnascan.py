@@ -92,7 +92,7 @@ def getoptions():
                               "(aka disable parallelization) [%(default)s]"))
     args = parser.parse_args()
 
-    if not (args.pfm_seq or args.pfm_struct or args.bgonly):
+    if not (args.pfm_seq or args.pfm_struct):
         parser.error("Must specify PFMs with -p and/or -q")
 
     if args.uniform_background and (args.bg_seq or args.bg_struct):
@@ -465,7 +465,7 @@ def load_background(bg_file, uniform, *args):
             bg = ast.literal_eval(bg)
             print >> sys.stderr, dict(bg)
     elif not uniform:
-        bg = compute_background(args)
+        bg = compute_background(*args)
     else:
         bg = None
     return bg
@@ -490,11 +490,12 @@ def main():
         else:
             seq_file = args.fastafiles[0]
 
-        if args.bg_seq and not args.testseq:
+        if not args.testseq:
             bg = load_background(args.bg_seq,
+                                 args.uniform_background,
+                                 seq_file,
                                  IUPAC.IUPACUnambiguousRNA(),
-                                 args.fastafiles[0],
-                                 args.uniform_background)
+                                 not args.bgonly)
 
         if not args.bgonly:
             pssm = load_motif(args.pfm_seq,
@@ -505,6 +506,9 @@ def main():
                                     pssm,
                                     IUPAC.IUPACUnambiguousRNA(),
                                     bg, args)
+        else:
+            print dict(bg)
+            sys.exit()
 
     ## Structure
     if seq_type in ['SS', 'RNASS']:
@@ -515,11 +519,12 @@ def main():
         else:
             struct_file = args.fastafiles[1]
 
-        if args.bg_struct and not args.testseq:
+        if not args.testseq:
             bg = load_background(args.bg_struct,
-                                 ContextualSecondaryStructure(),
+                                 args.uniform_background,
                                  struct_file,
-                                 args.uniform_background)
+                                 ContextualSecondaryStructure(),
+                                 not args.bgonly)
 
         if not args.bgonly:
             pssm = load_motif(args.pfm_struct,
@@ -530,7 +535,9 @@ def main():
                                        pssm,
                                        ContextualSecondaryStructure(),
                                        bg, args)
-
+        else:
+            print dict(bg)
+            sys.exit()
 
     if seq_type == 'RNASS':
         combined_results = combine(seq_results, struct_results)

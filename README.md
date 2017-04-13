@@ -107,6 +107,32 @@ To print the score at *every* position, change the default threshold using the
 rnascan -p pfm_seq.txt -q pfm_struct.txt -m ' -inf' -c 8 sequences.fasta averaged_structures/ > hits.tab
 ```
 
+### Computing background probabilities
+
+By default, `rnascan` computes the background probabilities from the input
+sequences at the beginning of the run. To apply a uniform
+background, use the option `-u`:
+
+```
+rnascan -p pfm_seq.txt -u sequences.fasta > hits.tab
+```
+
+To compute the background probabilities of a set of input sequences and save it
+for future use, use the option `--bgonly`:
+
+```
+rnascan -p pfm_seq.txt --bgonly sequences.fasta > background.txt
+
+rnascan -q pfm_struct.txt --bgonly structures.fasta > background.txt
+```
+
+In this mode, `rnascan` computes the background probabilities, outputs to standard output (in the form of a Python dictionary), and exits (no scanning is performed). To re-use this background later, use the option `--bg_seq` or
+`--bg_struct` with the background file:
+
+```
+rnascan -p pfm_seq.txt --bg_seq background.txt sequences.fasta > hits.tab
+```
+
 # Citation
 
 # Links

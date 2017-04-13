@@ -44,7 +44,7 @@ if is_Numpy_installed():
 ))
 
 setup(name='rnascan',
-      version='0.9.0',
+      version='0.9.1',
       description='Scan RBP motifs and secondary structure from SSMs',
       url='http://github.com/morrislab/rnascan',
       author='Kevin Ha, Kate Cook, Kaitlin Laverty',
