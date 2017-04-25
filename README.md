@@ -44,7 +44,7 @@ g++ -o ~/bin/parse_secondary_structure scripts/parse_secondary_structure.cpp
 
 ### 4. Install `rnascan` Python components
 
-This package was written for Python 2.7.x -- it has not be tested in Python 3. To install the package, run the following:
+This package was written for Python 2.7.x (not compatible with Python 3 yet; but this will be updated in the near future). To install the package, run the following:
 
 ```
 python setup.py install
