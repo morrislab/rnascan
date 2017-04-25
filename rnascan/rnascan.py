@@ -37,7 +37,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
 
-__version__ = 'v0.9.0'
+__version__ = 'v0.9.1'
 
 
 def getoptions():
