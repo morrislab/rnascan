@@ -6,12 +6,13 @@
 #
 
 
-
 from Bio.motifs import matrix
 from Bio.Alphabet import NucleotideAlphabet
 import platform
 
-class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix):
+
+class ExtendedPositionSpecificScoringMatrix(
+        matrix.PositionSpecificScoringMatrix):
     """This new class inherits Bio.motifs.matrix.PositionSpecificScoringMatrix.
     It has been modified to support any kind of Alphabet. This allows us to
     perform motif scans on RNA sequence as well as RNA secondary structure.
@@ -45,6 +46,7 @@ class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix
     # Fall back to the slower Python implementation if Jython or IronPython.
     try:
         from . import _pwm
+
         def _calculate(self, sequence, m, n):
 
             # Only RNA and DNA is supported right now. If sequence is
@@ -54,7 +56,7 @@ class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix
 
             letters = ''.join(sorted(self.alphabet.letters))
             logodds = [[self[letter][i] for letter in letters]
-                            for i in range(m)]
+                       for i in range(m)]
             return self._pwm.calculate(sequence, logodds)
     except ImportError:
         if platform.python_implementation() == 'CPython':
@@ -62,7 +64,6 @@ class ExtendedPositionSpecificScoringMatrix(matrix.PositionSpecificScoringMatrix
         else:
             def _calculate(self, sequence, m, n):
                 return self._py_calculate(sequence, m, n)
-
 
     def calculate(self, sequence):
 
