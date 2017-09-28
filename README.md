@@ -135,7 +135,8 @@ rnascan -p pfm_seq.txt --bg_seq background.txt sequences.fasta > hits.tab
 
 # Citation
 
-Cook KB, Vembu S, Ha KCH, Zheng H, Laverty KU, Hughes TR, Ray D, Morris QD (2017). RNAcompete-S: combined RNA sequence/structure preferences for RNA binding proteins derived from a single-step in vitro selection. Methods. (in press). http://www.sciencedirect.com/science/article/pii/S1046202317300312
+Cook, K.B., Vembu, S., Ha, K.C.H., Zheng, H., Laverty, K.U., Hughes, T.R., Ray, D., Morris, Q.D., 2017. RNAcompete-S: Combined RNA sequence/structure preferences for RNA binding proteins derived from a single-step in vitro selection. Methods 126, 18–28.
+http://www.sciencedirect.com/science/article/pii/S1046202317300312
 
 # Links
 
