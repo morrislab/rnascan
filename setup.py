@@ -48,8 +48,11 @@ if is_Numpy_installed():
                   include_dirs=[numpy_include_dir],
 ))
 
+here = os.path.abspath(os.path.dirname(__file__))
+exec(open(os.path.join(here, 'qapa/version.py')).read())
+
 setup(name='rnascan',
-      version='0.9.1',
+      version=__version__,
       description='Scan RBP motifs and secondary structure from SSMs',
       url='http://github.com/morrislab/rnascan',
       author='Kevin Ha, Kate Cook, Kaitlin Laverty',
