@@ -20,7 +20,7 @@ import tempfile
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-from pfmutil import norm_pfm
+from .pfmutil import norm_pfm
 import subprocess
 import numpy as np
 
@@ -44,7 +44,7 @@ def struct_pfm_from_aligned(sequences):
 def get_structure_probability_matrix_for_sequence(id,seq,frag_length,overlap):
     aligned_annotated_sequences = []
     
-    for i in xrange(-frag_length/2,len(seq)-frag_length/2,frag_length-overlap):
+    for i in range(-frag_length/2,len(seq)-frag_length/2,frag_length-overlap):
         temphandle = tempfile.NamedTemporaryFile(delete=False,mode='r+b') # for centroid structure
         temphandle2 = tempfile.NamedTemporaryFile(delete=False,mode='r+b') # for output of structure parser
         
@@ -108,7 +108,7 @@ def get_structure_probability_matrix_from_probabilities(id,seq,frag_length):
     
     probabilities = {}
     
-    for alph,p in programs.iteritems():
+    for alph,p in programs.items():
         args = [p] + plfold_args
         plfold_proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=None)
         #plfold_output = plfold_proc.communicate(input_record.format("fasta"))[0]

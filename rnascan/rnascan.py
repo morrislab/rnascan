@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with rnascan.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
+
 
 import sys
 import time
@@ -31,9 +31,9 @@ from collections import defaultdict
 import multiprocessing
 import pandas as pd
 import numpy as np
-from itertools import izip, repeat
-from BioAddons.Alphabet import ContextualSecondaryStructure
-from BioAddons.motifs import matrix
+from itertools import repeat
+from .BioAddons.Alphabet import ContextualSecondaryStructure
+from .BioAddons.motifs import matrix
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -155,7 +155,7 @@ def batch_iterator(iterator, batch_size):
         batch = []
         while len(batch) < batch_size:
             try:
-                entry = iterator.next()
+                entry = next(iterator)
             except StopIteration:
                 entry = None
             if entry is None:
@@ -256,7 +256,7 @@ def scan(pssm, seq, alphabet, minscore):
     """ Core scanning function
     """
     results = []
-    (motif_id, pm) = pssm.items()[0]
+    (motif_id, pm) = list(pssm.items())[0]
     for position, score in pm.search(seq, threshold=minscore, both=False):
         end_position = position + len(pm.consensus)
 
@@ -292,13 +292,13 @@ def scan_averaged_structure(struct_file, pssm, minscore):
     """
     struct = pd.read_table(struct_file)
     del struct['PO']
-    (motif_id, pm) = pssm.items()[0]
+    (motif_id, pm) = list(pssm.items())[0]
     motif_scores = []
     pm = pd.DataFrame(pm)     # Convert dict back to data frame
     N = len(pm.index)
-    for i in xrange(0, len(struct.index) - N + 1):
+    for i in range(0, len(struct.index) - N + 1):
         score = 0
-        for j in xrange(0, N):
+        for j in range(0, N):
             # Multiply by SSM
             score += np.nan_to_num(np.dot(struct.iloc[i + j, :],
                                           pm.iloc[j, :]))
@@ -353,7 +353,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
             else:
                 p = multiprocessing.Pool(args.cores)
                 batch_results = p.map(_scan_averaged_structure,
-                                      izip(structures, repeat(pssm),
+                                      zip(structures, repeat(pssm),
                                            repeat(args.minscore)))
                 for j, hits in enumerate(batch_results):
                     if hits is None:
@@ -378,7 +378,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
             else:
                 p = multiprocessing.Pool(args.cores)
                 for i, batch in enumerate(batch_iterator(seq_iter, 2000)):
-                    batch_results = p.map(_scan_all, izip(batch,
+                    batch_results = p.map(_scan_all, zip(batch,
                                                           repeat(pssm),
                                                           repeat(alphabet),
                                                           repeat(args.minscore)
@@ -444,7 +444,7 @@ def compute_background(fastas, alphabet, verbose=True):
             total += amount
     pct_sum = 0
 
-    for letter, count in content.iteritems():
+    for letter, count in content.items():
         content[letter] = (float(count) + 1) / total    # add pseudocount
         if content[letter] <= 0.05:
             warnings.warn("Letter %s has low content: %0.2f"
