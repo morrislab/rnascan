@@ -49,7 +49,8 @@ if is_Numpy_installed():
 ))
 
 here = os.path.abspath(os.path.dirname(__file__))
-exec(open(os.path.join(here, 'qapa/version.py')).read())
+exec(open(os.path.join(here, 'rnascan/version.py')).read())
+
 
 setup(name='rnascan',
       version=__version__,
