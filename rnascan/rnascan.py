@@ -43,7 +43,7 @@ from .version import __version__
 
 def getoptions():
     desc = "Scan sequence for motif binding sites. Results sent to STDOUT."
-    parser = argparse.ArgumentParser(description=desc, version=__version__)
+    parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
     pfm_grp = parser.add_argument_group("PFM options")
@@ -87,6 +87,8 @@ def getoptions():
     bg_grp.add_argument('-B', '--bg_struct', default=None, dest="bg_struct",
                         help=("Load file of pre-computed background "
                           "probabilities for nucleotide sequences"))
+    parser.add_argument('-v', '--version', action='version',
+                        version='%(prog)s ' + __version__)
     parser.add_argument('-x', '--debug', action="store_true", default=False,
                         dest="debug",
                         help=("Turn on debug mode  "
@@ -460,7 +462,7 @@ def load_background(bg_file, uniform, *args):
     input files or use uniform
     """
     if bg_file:
-        eprint("Reading custom background probabilities from %s" % file)
+        eprint("Reading custom background probabilities from %s" % bg_file)
         # load custom background
         # http://stackoverflow.com/a/11027069
         with open(bg_file, 'r') as fin:
