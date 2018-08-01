@@ -230,6 +230,8 @@ def load_motif(pfm_file, *args):
     toc = time.time()
     eprint("done in %0.2f seconds!" % (float(toc - tic)))
     eprint("Found %d motifs" % len(motifs_set))
+    if len(motifs_set) == 0:
+        raise ValueError("No motifs found.")
     return motifs_set
 
 
