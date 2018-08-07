@@ -548,11 +548,16 @@ def main():
 
     if seq_type == 'RNASS':
         combined_results = combine(seq_results, struct_results)
-        combined_results.to_csv(sys.stdout, sep="\t", index=False)
+        combined_results.reset_index(drop=True)
+        # Match_ID is only unique for each sequence-motif pairing. It can't be used on its 
+        # on as a unique identifier. Maybe change in the future?
+        combined_results.to_csv(sys.stdout, sep="\t", index=True, index_label="Match_ID")
     elif seq_type == 'RNA':
-        seq_results.to_csv(sys.stdout, sep="\t", index=False)
+        seq_results.reset_index(drop=True)
+        seq_results.to_csv(sys.stdout, sep="\t", index=True, index_label="Match_ID")
     else:
-        struct_results.to_csv(sys.stdout, sep="\t", index=False)
+        struct_results.reset_index(drop=True)
+        struct_results.to_csv(sys.stdout, sep="\t", index=True, index_label="Match_ID")
 
     toc = time.time()
 

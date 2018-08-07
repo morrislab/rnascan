@@ -80,7 +80,7 @@ Here are some example commands using minimal options:
 
 ```
 # To run a test sequence
-rnascan -p pfm_seq.txt -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
+rnascan -p pfm_seq.txt -t AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
 
 # Sequence-only (use -p)
 rnascan -p pfm_seq.txt sequences.fasta > hits.tab
