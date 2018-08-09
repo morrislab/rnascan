@@ -95,7 +95,7 @@ def getoptions():
                               "(aka disable parallelization) [%(default)s]"))
     args = parser.parse_args()
 
-    if not (args.pfm_seq or args.pfm_struct):
+    if not (args.pfm_seq or args.pfm_struct or args.bgonly):
         parser.error("Must specify PFMs with -p and/or -q")
 
     if args.uniform_background and (args.bg_seq or args.bg_struct):
