@@ -67,5 +67,7 @@ setup(name='rnascan',
                         'numpy >= 1.10.0',
                         'biopython >= 1.66'],
       ext_modules=EXTENSIONS,
-      zip_safe=False
+      zip_safe=False,
+      test_suite='nose.collector',
+      tests_require=['nose']
       )

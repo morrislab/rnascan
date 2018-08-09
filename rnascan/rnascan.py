@@ -326,6 +326,12 @@ def _add_sequence_id(df, seq_id, description):
     df['Description'] = description
 
 
+def _add_match_id(df):
+    """Insert a unique identifier between 1...n
+    """
+    df['Match_ID'] = list(range(1, df.shape[0] + 1))
+
+
 def scan_main(fasta_file, pssm, alphabet, bg, args):
     """ Main function for handling scanning of PSSM and a sequence/structure
     """
@@ -549,15 +555,16 @@ def main():
     if seq_type == 'RNASS':
         combined_results = combine(seq_results, struct_results)
         combined_results.reset_index(drop=True)
-        # Match_ID is only unique for each sequence-motif pairing. It can't be used on its 
-        # on as a unique identifier. Maybe change in the future?
-        combined_results.to_csv(sys.stdout, sep="\t", index=True, index_label="Match_ID")
+        _add_match_id(combined_results)
+        combined_results.to_csv(sys.stdout, sep="\t", index=False)
     elif seq_type == 'RNA':
         seq_results.reset_index(drop=True)
-        seq_results.to_csv(sys.stdout, sep="\t", index=True, index_label="Match_ID")
+        _add_match_id(seq_results)
+        seq_results.to_csv(sys.stdout, sep="\t", index=False)
     else:
         struct_results.reset_index(drop=True)
-        struct_results.to_csv(sys.stdout, sep="\t", index=True, index_label="Match_ID")
+        _add_match_id(struct_results)
+        struct_results.to_csv(sys.stdout, sep="\t", index=False)
 
     toc = time.time()
 

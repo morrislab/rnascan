@@ -2,9 +2,9 @@ from __future__ import print_function
 import unittest
 import sys
 import types
-sys.path.append("..")
-import motif_scan.motif_scan as ms
-from motif_scan.BioAddons.Alphabet import *
+import os.path
+import rnascan.rnascan as ms
+from rnascan.BioAddons.Alphabet import *
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
@@ -13,12 +13,12 @@ from Bio.Alphabet import IUPAC
 class ParseSequencesTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.fastas = ['test.fa']
+        self.fastas = [os.path.join(os.path.dirname(__file__), 'test.fa')]
 
     def test_parse_sequences_1(self):
         '''Test parsing of test sequences
         '''
-        target = ms.parse_sequences(self.fastas, IUPAC.IUPACUnambiguousRNA())
+        target = ms.parse_sequences(self.fastas)
         self.assertIsInstance(target, types.GeneratorType)
 
         for item in target:
@@ -28,7 +28,7 @@ class ParseSequencesTestCase(unittest.TestCase):
 class ComputeBackgroundTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.fastas = ['test.fa']
+        self.fastas = [os.path.join(os.path.dirname(__file__), 'test.fa')]
 
     def test_compute_background_1(self):
         target = ms.compute_background(self.fastas,
@@ -39,7 +39,7 @@ class ComputeBackgroundTestCase(unittest.TestCase):
                     'U': 0.5277,
                     'G': 0.1388}
 
-        for key,value in expected.iteritems():
+        for key,value in expected.items():
             self.assertAlmostEqual(target[key], value, 3)
 
 
