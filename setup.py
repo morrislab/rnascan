@@ -59,13 +59,18 @@ setup(name='rnascan',
       url='http://github.com/morrislab/rnascan',
       author='Kevin Ha, Kate Cook, Kaitlin Laverty',
       author_email='k.ha@mail.utoronto.ca, kate.cook@gmail.com, kaitlin.laverty@mail.utoronto.ca',
-      license='',
+      license='AGPL-3.0',
       packages=find_packages(),
-      scripts=['scripts/rnascan', 'scripts/run_folding'],
+      scripts=['scripts/run_folding'],
       install_requires=['setuptools',
                         'pandas >= 0.17',
                         'numpy >= 1.10.0',
                         'biopython >= 1.66'],
+      entry_points={
+            'console_scripts': [
+                'rnascan = rnascan.rnascan:main'
+            ]
+      },
       ext_modules=EXTENSIONS,
       zip_safe=False,
       test_suite='nose.collector',
