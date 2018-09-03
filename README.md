@@ -2,7 +2,6 @@
 ![Version](https://img.shields.io/badge/version-0.10.2-brightgreen.svg)
 [![GitHub license](https://img.shields.io/github/license/morrislab/rnascan.svg)](https://github.com/morrislab/rnascan/blob/master/LICENSE)
 
-
 # rnascan
 
 rnascan is a (mostly) Python suite to scan RNA sequences and secondary structures with sequence and secondary structure PFMs. Secondary structure is represented as weights in different secondary structure contexts, similar to how a PFM represents weights of different nucleotides or amino acids. This allows representation and use of secondary structures in a way that is similar to how PFMs are used to scan nucleotide sequences, and also allows for some flexibility in the structure, as you might find in the boltzmann distribution of secondary structures.
