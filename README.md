@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/morrislab/rnascan.svg?branch=py3)](https://travis-ci.org/morrislab/rnascan)
+[![Build Status](https://travis-ci.org/morrislab/rnascan.svg?branch=master)](https://travis-ci.org/morrislab/rnascan)
 ![Version](https://img.shields.io/badge/version-0.10.2-brightgreen.svg)
 [![GitHub license](https://img.shields.io/github/license/morrislab/rnascan.svg)](https://github.com/morrislab/rnascan/blob/master/LICENSE)
 
