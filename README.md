@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/morrislab/rnascan.svg?branch=master)](https://travis-ci.org/morrislab/rnascan)
+![Version](https://img.shields.io/badge/version-0.10.2-brightgreen.svg)
+[![GitHub license](https://img.shields.io/github/license/morrislab/rnascan.svg)](https://github.com/morrislab/rnascan/blob/master/LICENSE)
+
 # rnascan
 
 rnascan is a (mostly) Python suite to scan RNA sequences and secondary structures with sequence and secondary structure PFMs. Secondary structure is represented as weights in different secondary structure contexts, similar to how a PFM represents weights of different nucleotides or amino acids. This allows representation and use of secondary structures in a way that is similar to how PFMs are used to scan nucleotide sequences, and also allows for some flexibility in the structure, as you might find in the boltzmann distribution of secondary structures.
@@ -44,7 +48,7 @@ g++ -o ~/bin/parse_secondary_structure scripts/parse_secondary_structure.cpp
 
 ### 4. Install `rnascan` Python components
 
-This package was written for Python 2.7.x or later (_not compatible with Python 3 yet_). To install the package, run the following:
+This package requires Python 2.7+ or Python 3.5+. To install the package, run the following:
 
 ```
 python setup.py install
@@ -80,7 +84,7 @@ Here are some example commands using minimal options:
 
 ```
 # To run a test sequence
-rnascan -p pfm_seq.txt -s AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
+rnascan -p pfm_seq.txt -t AGTTCCGGTCCGGCAGAGATCGCG > hits.tab
 
 # Sequence-only (use -p)
 rnascan -p pfm_seq.txt sequences.fasta > hits.tab

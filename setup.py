@@ -1,10 +1,16 @@
+import os.path
 import sys
 from setuptools import find_packages
 from distutils.core import setup, Extension
 
 if sys.version_info < (2, 7):
-  sys.stderr.write("At least Python 2.7 is required\n")
-  sys.exit(1)
+      sys.stderr.write("rnascan requires Python 2.7, or Python 3.5 or later. "
+                       "Python %d.%d detected.\n" % sys.version_info[:2])
+      sys.exit(1)
+elif sys.version_info[0] == 3 and sys.version_info[:2] < (3, 5):
+      sys.stderr.write("rnascan requires Python 2.7, or Python 3.5 or later. "
+                       "Python %d.%d detected.\n" % sys.version_info[:2])
+      sys.exit(1)
 
 # Borrowing setup.py code from Biopython
 
@@ -43,19 +49,30 @@ if is_Numpy_installed():
                   include_dirs=[numpy_include_dir],
 ))
 
+here = os.path.abspath(os.path.dirname(__file__))
+exec(open(os.path.join(here, 'rnascan/version.py')).read())
+
+
 setup(name='rnascan',
-      version='0.9.1',
+      version=__version__,
       description='Scan RBP motifs and secondary structure from SSMs',
       url='http://github.com/morrislab/rnascan',
       author='Kevin Ha, Kate Cook, Kaitlin Laverty',
       author_email='k.ha@mail.utoronto.ca, kate.cook@gmail.com, kaitlin.laverty@mail.utoronto.ca',
       license='AGPLv3',
       packages=find_packages(),
-      scripts=['scripts/rnascan', 'scripts/run_folding'],
+      scripts=['scripts/run_folding'],
       install_requires=['setuptools',
                         'pandas >= 0.17',
                         'numpy >= 1.10.0',
                         'biopython >= 1.66'],
+      entry_points={
+            'console_scripts': [
+                'rnascan = rnascan.rnascan:main'
+            ]
+      },
       ext_modules=EXTENSIONS,
-      zip_safe=False
+      zip_safe=False,
+      test_suite='nose.collector',
+      tests_require=['nose']
       )

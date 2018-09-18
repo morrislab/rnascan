@@ -1,8 +1,8 @@
+from __future__ import print_function
 import unittest
 import sys
-sys.path.append("..")
-import motif_scan.motif_scan as ms
-from motif_scan.BioAddons.Alphabet import *
+import rnascan.rnascan as ms
+from rnascan.BioAddons.Alphabet import *
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC, SingleLetterAlphabet
@@ -47,11 +47,11 @@ class PreprocessSeqTestCase(unittest.TestCase):
 
     def test_preprocessSeq_6(self):
         '''Test preprocess_seq() on RNA alphabet'''
-        seqrec = SeqRecord(Seq('KHIL', ContextualSequenceSecondaryStructure()))
+        seqrec = SeqRecord(Seq('KHIL', ContextualSecondaryStructure()))
         target = ms.preprocess_seq(seqrec, IUPAC.IUPACUnambiguousRNA())
         expected = 'KHIL'
         self.assertEqual(str(target), expected)
 
 if __name__ == '__main__':
-    print sys.argv[0]
+    print(sys.argv[0])
     unittest.main()

@@ -45,7 +45,7 @@ def read_pfm(pfmfile):
     pfm = {}
     with open(pfmfile) as f:
         reader = csv.reader(f, delimiter='\t')
-        headerline = reader.next()
+        headerline = next(reader)
         alphabet = headerline[1:]
         for base in alphabet:
             pfm[base] = []
@@ -244,9 +244,9 @@ if __name__ == "__main__":
     
     pfm = read_pfm(file)
     
-    print(format_pfm(pfm))
+    print((format_pfm(pfm)))
     
     reduced_pfm = reduce_pfm_alphabet(pfm)    
     
-    print(format_pfm(reduced_pfm))
+    print((format_pfm(reduced_pfm)))
     

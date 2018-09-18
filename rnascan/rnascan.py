@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with rnascan.  If not, see <http://www.gnu.org/licenses/>.
 
+
+from __future__ import print_function
 import sys
 import time
 import glob
@@ -29,20 +31,19 @@ from collections import defaultdict
 import multiprocessing
 import pandas as pd
 import numpy as np
-from itertools import izip, repeat
-from BioAddons.Alphabet import ContextualSecondaryStructure
-from BioAddons.motifs import matrix
+from itertools import repeat
+from .BioAddons.Alphabet import ContextualSecondaryStructure
+from .BioAddons.motifs import matrix
 from Bio import motifs, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import RNAAlphabet, IUPAC
-
-__version__ = 'v0.9.1'
+from .version import __version__
 
 
 def getoptions():
     desc = "Scan sequence for motif binding sites. Results sent to STDOUT."
-    parser = argparse.ArgumentParser(description=desc, version=__version__)
+    parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('fastafiles', metavar='FASTA', nargs='*',
                         help="Input sequence and structure FASTA files")
     pfm_grp = parser.add_argument_group("PFM options")
@@ -86,6 +87,8 @@ def getoptions():
     bg_grp.add_argument('-B', '--bg_struct', default=None, dest="bg_struct",
                         help=("Load file of pre-computed background "
                           "probabilities for nucleotide sequences"))
+    parser.add_argument('-v', '--version', action='version',
+                        version='%(prog)s ' + __version__)
     parser.add_argument('-x', '--debug', action="store_true", default=False,
                         dest="debug",
                         help=("Turn on debug mode  "
@@ -102,6 +105,9 @@ def getoptions():
     return args
 
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 ###############################################################################
 # Sequence functions
 ###############################################################################
@@ -112,12 +118,12 @@ def _guess_seq_type(args):
 
     if nfiles == 2:
         if not (args.pfm_seq or args.pfm_struct):
-            print >> sys.stderr, "Missing PFMs"
+            eprint("Missing PFMs")
             sys.exit(1)
         seq_type = "RNASS"
     else:   # nfiles == 1
         if args.pfm_seq and args.pfm_struct and not args.testseq:
-            print >> sys.stderr, "Can't specify two PFMs with one input file"
+            eprint("Can't specify two PFMs with one input file")
             sys.exit(1)
         elif args.pfm_seq and args.pfm_struct and args.testseq:
             seq_type = "RNASS"
@@ -126,7 +132,7 @@ def _guess_seq_type(args):
         elif args.pfm_struct:
             seq_type = "SS"
         else:
-            print >> sys.stderr, "Must specify PFMs with -p and/or -q"
+            eprint("Must specify PFMs with -p and/or -q")
             sys.exit(1)
     return seq_type
 
@@ -150,7 +156,7 @@ def batch_iterator(iterator, batch_size):
         batch = []
         while len(batch) < batch_size:
             try:
-                entry = iterator.next()
+                entry = next(iterator)
             except StopIteration:
                 entry = None
             if entry is None:
@@ -205,25 +211,27 @@ def load_motif(pfm_file, *args):
     """ Load PFM
     """
     motifs_set = {}
-    print >> sys.stderr, "Loading PFM %s" % pfm_file,
+    eprint("Loading PFM %s" % pfm_file, end="")
     tic = time.time()
     try:
         motif_id = os.path.splitext(os.path.basename(pfm_file))[0]
         motifs_set[motif_id] = pfm2pssm(pfm_file, *args)
     except ValueError:
-        print >> sys.stderr, "\nFailed to load motif %s" % pfm_file
+        eprint("\nFailed to load motif %s" % pfm_file)
     except KeyError:
-        print >> sys.stderr, "\nFailed to load motif %s" % pfm_file
-        print >> sys.stderr, "Check that you are using the correct --type"
+        eprint("\nFailed to load motif %s" % pfm_file)
+        eprint("Check that you are using the correct --type")
         raise
     except:
-        print "Unexpected error:", sys.exc_info()[0]
+        eprint("Unexpected error: %s" % sys.exc_info()[0])
         raise
-    print >> sys.stderr, "\b.",
+    eprint("\b.", end="")
     sys.stderr.flush()
     toc = time.time()
-    print >> sys.stderr, "done in %0.2f seconds!" % (float(toc - tic))
-    print >> sys.stderr, "Found %d motifs" % len(motifs_set)
+    eprint("done in %0.2f seconds!" % (float(toc - tic)))
+    eprint("Found %d motifs" % len(motifs_set))
+    if len(motifs_set) == 0:
+        raise ValueError("No motifs found.")
     return motifs_set
 
 
@@ -251,7 +259,7 @@ def scan(pssm, seq, alphabet, minscore):
     """ Core scanning function
     """
     results = []
-    (motif_id, pm) = pssm.items()[0]
+    (motif_id, pm) = list(pssm.items())[0]
     for position, score in pm.search(seq, threshold=minscore, both=False):
         end_position = position + len(pm.consensus)
 
@@ -287,13 +295,13 @@ def scan_averaged_structure(struct_file, pssm, minscore):
     """
     struct = pd.read_table(struct_file)
     del struct['PO']
-    (motif_id, pm) = pssm.items()[0]
+    (motif_id, pm) = list(pssm.items())[0]
     motif_scores = []
     pm = pd.DataFrame(pm)     # Convert dict back to data frame
     N = len(pm.index)
-    for i in xrange(0, len(struct.index) - N + 1):
+    for i in range(0, len(struct.index) - N + 1):
         score = 0
-        for j in xrange(0, N):
+        for j in range(0, N):
             # Multiply by SSM
             score += np.nan_to_num(np.dot(struct.iloc[i + j, :],
                                           pm.iloc[j, :]))
@@ -318,6 +326,12 @@ def _add_sequence_id(df, seq_id, description):
     df['Description'] = description
 
 
+def _add_match_id(df):
+    """Insert a unique identifier between 1...n
+    """
+    df['Match_ID'] = list(range(1, df.shape[0] + 1))
+
+
 def scan_main(fasta_file, pssm, alphabet, bg, args):
     """ Main function for handling scanning of PSSM and a sequence/structure
     """
@@ -332,7 +346,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
         results = []
 
         if os.path.isdir(fasta_file):
-            print >> sys.stderr, "Scanning averaged secondary structures "
+            eprint("Scanning averaged secondary structures ")
 
             structures = glob.glob(fasta_file + "/structure.*.txt")
             if len(structures) == 0:
@@ -348,7 +362,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
             else:
                 p = multiprocessing.Pool(args.cores)
                 batch_results = p.map(_scan_averaged_structure,
-                                      izip(structures, repeat(pssm),
+                                      zip(structures, repeat(pssm),
                                            repeat(args.minscore)))
                 for j, hits in enumerate(batch_results):
                     if hits is None:
@@ -360,7 +374,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
                     results.append(hits)
                 p.close()
         else:
-            print >> sys.stderr, "Scanning sequences "
+            eprint("Scanning sequences ")
 
             seq_iter = parse_sequences(fasta_file)
 
@@ -373,7 +387,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
             else:
                 p = multiprocessing.Pool(args.cores)
                 for i, batch in enumerate(batch_iterator(seq_iter, 2000)):
-                    batch_results = p.map(_scan_all, izip(batch,
+                    batch_results = p.map(_scan_all, zip(batch,
                                                           repeat(pssm),
                                                           repeat(alphabet),
                                                           repeat(args.minscore)
@@ -393,7 +407,7 @@ def scan_main(fasta_file, pssm, alphabet, bg, args):
         if len(results) != 0:
             final = pd.concat(results)
 
-    print >> sys.stderr, "Processed %d sequences" % count
+    eprint("Processed %d sequences" % count)
     cols = final.columns.tolist()
     cols = cols[-2:] + cols[:-2]
     return final[cols]
@@ -426,7 +440,7 @@ def combine(seq_results, struct_results):
 def compute_background(fastas, alphabet, verbose=True):
     """ Compute background probabiilities from all input sequences
     """
-    print >> sys.stderr, "Calculating background probabilities..."
+    eprint("Calculating background probabilities...")
     content = defaultdict(int)
     total = len(alphabet.letters)       # add psuedocount for each letter
     seq_iter = parse_sequences(fastas)
@@ -439,14 +453,14 @@ def compute_background(fastas, alphabet, verbose=True):
             total += amount
     pct_sum = 0
 
-    for letter, count in content.iteritems():
+    for letter, count in content.items():
         content[letter] = (float(count) + 1) / total    # add pseudocount
         if content[letter] <= 0.05:
             warnings.warn("Letter %s has low content: %0.2f"
                           % (letter, content[letter]), Warning)
         pct_sum += content[letter]
 
-    if verbose: print >> sys.stderr, dict(content)
+    if verbose: eprint(dict(content))
     assert abs(1.0 - pct_sum) < 0.0001, "Background sums to %f" % pct_sum
     return content
 
@@ -456,14 +470,13 @@ def load_background(bg_file, uniform, *args):
     input files or use uniform
     """
     if bg_file:
-        print >> sys.stderr, ("Reading custom background probabilities "
-            "from %s" % file)
+        eprint("Reading custom background probabilities from %s" % bg_file)
         # load custom background
         # http://stackoverflow.com/a/11027069
         with open(bg_file, 'r') as fin:
             bg = fin.read()
             bg = ast.literal_eval(bg)
-            print >> sys.stderr, dict(bg)
+            eprint(dict(bg))
     elif not uniform:
         bg = compute_background(*args)
     else:
@@ -507,7 +520,7 @@ def main():
                                     IUPAC.IUPACUnambiguousRNA(),
                                     bg, args)
         else:
-            print dict(bg)
+            print(dict(bg))
             sys.exit()
 
     ## Structure
@@ -536,24 +549,30 @@ def main():
                                        ContextualSecondaryStructure(),
                                        bg, args)
         else:
-            print dict(bg)
+            print(dict(bg))
             sys.exit()
 
     if seq_type == 'RNASS':
         combined_results = combine(seq_results, struct_results)
+        combined_results.reset_index(drop=True)
+        _add_match_id(combined_results)
         combined_results.to_csv(sys.stdout, sep="\t", index=False)
     elif seq_type == 'RNA':
+        seq_results.reset_index(drop=True)
+        _add_match_id(seq_results)
         seq_results.to_csv(sys.stdout, sep="\t", index=False)
     else:
+        struct_results.reset_index(drop=True)
+        _add_match_id(struct_results)
         struct_results.to_csv(sys.stdout, sep="\t", index=False)
 
     toc = time.time()
 
     runtime = float(toc - tic)
     if runtime > 60:
-        print >> sys.stderr, "Done in %0.4f minutes!" % (runtime / 60)
+        eprint("Done in %0.4f minutes!" % (runtime / 60))
     else:
-        print >> sys.stderr, "Done in %0.4f seconds!" % (runtime)
+        eprint("Done in %0.4f seconds!" % (runtime))
 
 
 if __name__ == '__main__':
